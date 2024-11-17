@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xterm.js Local Echo Test</title>
+  <style>
+    #terminal-container {
+      width: 100%;
+      height: 400px;
+    }
+  </style>
+</head>
+<body>
+  <div id="terminal-container"></div>
+  <script src="./dist/xterm.mjs"></script>
+  <script>
+    const { Terminal, FitAddon, AttachAddon, createTerminal } = XtermLibrary;
+
+    // Initialize the terminal
+    const container = document.getElementById('terminal-container');
+    const terminal = createTerminal(container);
+
+    // Addons
+    const fitAddon = new FitAddon();
+    terminal.loadAddon(fitAddon);
+    fitAddon.fit();
+
+    // WebSocket for IO
+    const socket = new WebSocket('ws://localhost:8080');
+    socket.onopen = () => {
+      terminal.write('WebSocket connected!\r\n');
+    };
+    socket.onmessage = (event) => {
+      terminal.write(`\r\nServer: ${event.data}\r\n`);
+    };
+    socket.onclose = () => {
+      terminal.write('\r\nWebSocket disconnected.\r\n');
+    };
+
+    // Local Echo: Write input locally before sending to the server
+    terminal.onData((data) => {
+      // Local echo
+      terminal.write(data);
+
+      // Send to WebSocket
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(data);
+      } else {
+        terminal.write('\r\n[Error] WebSocket is not connected.\r\n');
+      }
+    });
+
+    // Initial message
+    terminal.write('Type something to see local echo and server response!\r\n');
+  </script>
+</body>
+</html>

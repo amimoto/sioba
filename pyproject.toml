@@ -1,0 +1,14 @@
+[project]
+name = "nicegui experiment"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "", email = ""},
+]
+dependencies = ["rich>=13.9.4", "loguru>=0.7.2", "nicegui>=2.5.0"]
+requires-python = ">=3.12"
+readme = "README.md"
+license = {text = "MIT"}
+
+[tool.pdm]
+distribution = false
