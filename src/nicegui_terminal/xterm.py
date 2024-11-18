@@ -1,9 +1,9 @@
 from pathlib import Path
-from typing import Callable, List, Literal, Optional, get_args
+from typing import Optional
 
 from nicegui.elements.mixins.disableable_element import DisableableElement
 from nicegui.elements.mixins.value_element import ValueElement
-from nicegui.events import GenericEventArguments, Handler, ValueChangeEventArguments
+from nicegui.events import Handler, ValueChangeEventArguments
 
 from nicegui.awaitable_response import AwaitableResponse
 
@@ -21,9 +21,8 @@ class XTerm(
     def __init__(
         self,
         value: str = '',
-        on_change: Optional[Handler[ValueChangeEventArguments]] = None,
-        *args,
     ) -> None:
+        on_change=None
         super().__init__(value=value, on_value_change=on_change)
         self.add_resource(Path(__file__).parent / 'lib' / 'xterm.js')
 
@@ -46,3 +45,41 @@ class XTerm(
         self.backend_output = "\n".join(self.screen.display)
         self.call_terminal_method("write", self.backend_output)
 
+
+from nicegui_terminal.utils.subprocess import InvokeProcess 
+
+class XTermProcess(XTerm):
+
+    def __init__(
+        self,
+        invoke_command,
+        shutdown_command: Optional[str] = None,
+        *a, **kw
+    ) -> None:
+        super().__init__(*a, **kw)
+        self.add_resource(Path(__file__).parent / 'lib' / 'xterm.js')
+
+        # We launch a long running process if it hasn't been started yet
+        def on_read(data):
+            self.write(data.decode('utf-8'))
+        self.shell = InvokeProcess('/bin/bash', None, on_read=on_read)
+
+        async def on_render(e):
+            self.shell.set_size(await self.rows(), await self.cols())
+        self.on("render", on_render)
+
+        async def on_resize(e):
+            if rows := e.args.get("rows"):
+                if cols := e.args.get("cols"):
+                    self.shell.set_size(rows, cols)
+        self.on("resize", on_resize)
+
+        async def on_input(e):
+            if isinstance(e.args, str):
+                data = e.args
+                await self.shell.write(data)
+                #self.write(data)
+        self.on("input", on_input)
+
+    async def start(self):
+        await self.shell.start()
