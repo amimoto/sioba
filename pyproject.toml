@@ -1,14 +1,24 @@
 [project]
-name = "nicegui experiment"
+name = "niceterminal"
 version = "0.1.0"
-description = "Default template for PDM package"
+description = "A library for building terminal applications with NiceGUI and rich terminal features."
 authors = [
-    {name = "", email = ""},
+    {name = "Aki Mimoto", email = "aki@bako.ca"},
 ]
-dependencies = ["rich>=13.9.4", "loguru>=0.7.2", "nicegui>=2.5.0", "pyte>=0.8.2"]
-requires-python = ">=3.12"
+dependencies = [
+    "nicegui>=2.5.0", 
+    "pyte>=0.8.2"
+]
+requires-python = ">=3.8"
 readme = "README.md"
-license = {text = "MIT"}
+license = {text = "MIT-0"}
 
 [tool.pdm]
-distribution = false
+distribution = true
+build = { includes = ["src/niceterminal"] }
+
+[build-system]
+requires = ["pdm-backend>=0.12"]
+build-backend = "pdm.backend"
+
+

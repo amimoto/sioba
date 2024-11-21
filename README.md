@@ -1,4 +1,4 @@
-# NiceGUI Terminal
+# NiceTerm: A NiceGUI xterm.js Control
 
 WIP and probably should change the name since it'll probably end up getting searched.
 

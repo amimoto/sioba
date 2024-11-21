@@ -31,7 +31,7 @@ RUN apt update \
     && apt-get install -y nodejs \
     && npm install -g npm@latest typescript --unsafe-perm=true --allow-root \
     # Install yarn
-    && npm install --global yarn
+    && npm install --global yarn \
     # Cleanup extra files
     && apt clean \
     && rm -rf ~/.cache \

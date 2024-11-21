@@ -9,7 +9,7 @@ import termios
 class InvokeProcess:
     def __init__(self,
                  invoke_command,
-                 shutdown_command,
+                 shutdown_command=None,
                  on_read=None,
                  cwd=None,
                  ):
@@ -46,6 +46,8 @@ class InvokeProcess:
 
     def set_size(self, row, col, xpix=0, ypix=0):
         """Sets the shell window size."""
+        if not self.process:
+            return
         winsize = struct.pack("HHHH", row, col, xpix, ypix)
         fcntl.ioctl(self.subordinate_fd, termios.TIOCSWINSZ, winsize)
         pgrp = os.getpgid(self.process.pid)
@@ -53,6 +55,7 @@ class InvokeProcess:
 
     async def shutdown(self):
         """Shuts down the shell process."""
+        self.process.kill()
         loop = asyncio.get_running_loop()
         loop.remove_reader(self.primary_fd)
         if self.shutdown_command:
