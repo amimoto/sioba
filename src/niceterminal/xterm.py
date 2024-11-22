@@ -11,6 +11,8 @@ from niceterminal.utils.subprocess import InvokeProcess
 
 from nicegui.awaitable_response import AwaitableResponse
 
+from niceterminal.utils.subprocess import InvokeProcess
+
 class XTerm(
         ValueElement,
         DisableableElement,
@@ -27,9 +29,9 @@ class XTerm(
     def __init__(
         self,
         value: str = '',
-
         on_change: Optional[callable] = None,
         on_close: Optional[callable] = None,
+        process:InvokeProcess = None,
     ) -> None:
         super().__init__(value=value, on_value_change=on_change)
         self.add_resource(Path(__file__).parent / 'lib' / 'xterm.js')
@@ -42,6 +44,9 @@ class XTerm(
                 self._auto_close(),
                 name='auto-close terminal'
             )
+
+        if process:
+            self.connect_process(process)
 
     def call_terminal_method(self, name: str, *args) -> None:
         self.run_method("call_api_method", name, *args)
@@ -70,4 +75,41 @@ class XTerm(
 
     def on_close(self, callback) -> None:
         self.on_close_callback = callback
+
+    def connect_process(self, process:InvokeProcess) -> None:
+        """ Connects the XTerm to an InvokeProcess object """ 
+        def on_read(data):
+            self.write(data.decode('utf-8'))
+        process.on_read(on_read)
+
+        self.process = process
+
+        async def on_render(e):
+            self.process.set_size(
+                await self.rows(),
+                await self.cols()
+            )
+        self.on("render", on_render)
+
+        async def on_resize(e):
+            if rows := e.args.get("rows"):
+                if cols := e.args.get("cols"):
+                    self.process.set_size(rows, cols)
+        self.on("resize", on_resize)
+
+        async def on_input(e):
+            if isinstance(e.args, str):
+                data = e.args
+                await self.process.write(data)
+        self.on("input", on_input)
+
+        #async def on_close(self):
+        #    await self.process.shutdown()
+        #self.on_close(on_close)
+
+        if not self.client.shared:
+            background_tasks.create(
+                self.process.start(),
+                name='Invoke process handling'
+            )
 

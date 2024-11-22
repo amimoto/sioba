@@ -5,23 +5,34 @@ import signal
 import struct
 import fcntl
 import termios
+from typing import Callable
 
 class InvokeProcess:
     def __init__(self,
-                 invoke_command,
-                 shutdown_command=None,
-                 on_read=None,
-                 cwd=None,
+                 invoke_command:str,
+                 shutdown_command:str=None,
+                 on_read:Callable=None,
+                 cwd:str=None,
                  ):
         self.primary_fd, self.subordinate_fd = pty.openpty()
         self.invoke_command = invoke_command
         self.shutdown_command = shutdown_command
         self.cwd = cwd
         self.process = None
-        self.on_read = on_read
+        self._on_read = []
+        self._started = False
+        if on_read:
+            self._on_read.append(on_read)
+
+    def on_read(self, on_read:Callable):
+        if on_read not in self._on_read:
+            self._on_read.append(on_read)
 
     async def start(self):
         """Starts the shell process asynchronously."""
+        if self._started:
+            return
+        self._started = True
         self.process = await asyncio.create_subprocess_shell(
             self.invoke_command,
             preexec_fn=os.setsid,
@@ -36,13 +47,21 @@ class InvokeProcess:
 
     def _on_data_available(self):
         """Callback when data is available to read from the shell."""
-        data = os.read(self.primary_fd, 10240)
-        if data and self.on_read:
-            self.on_read(data)
+        if data := os.read(self.primary_fd, 10240):
+            for on_read in self._on_read:
+                try:
+                    on_read(data)
+                except OSError as e:
+                    print(e)
+                    print(dir(e))
 
     async def write(self, data):
         """Writes data to the shell."""
-        os.write(self.primary_fd, data.encode('utf-8'))
+        try:
+            os.write(self.primary_fd, data.encode('utf-8'))
+        except OSError as e:
+            print(e)
+            print(dir(e))
 
     def set_size(self, row, col, xpix=0, ypix=0):
         """Sets the shell window size."""
@@ -75,3 +94,6 @@ class InvokeProcess:
         await self.process.wait()
         os.close(self.primary_fd)
         os.close(self.subordinate_fd)
+
+    def __del__(self):
+        print("BEING DELETED!!!!!")

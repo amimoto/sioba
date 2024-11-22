@@ -7,7 +7,8 @@ authors = [
 ]
 dependencies = [
     "nicegui>=2.5.0", 
-    "pyte>=0.8.2"
+    "pyte>=0.8.2", 
+    "invoke>=2.2.0"
 ]
 requires-python = ">=3.8"
 readme = "README.md"

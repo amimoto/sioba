@@ -1,10 +1,12 @@
-from nicegui import ui, Client
+from nicegui import ui, app
 from niceterminal import xterm
 
 from niceterminal.utils.subprocess import InvokeProcess 
 
+PROCESSES = {}
+
 @ui.page('/')
-async def index(client: Client):
+async def index():
     ui.page_title("Terminal")
 
     ui.add_head_html('''
@@ -18,40 +20,25 @@ async def index(client: Client):
     dark = ui.dark_mode()
     dark.enable()
 
-    term = xterm.XTerm().classes("w-full h-screen m-0 p-0")
+    # Let's start a process if it hasn't yet
+    processes = app.storage.user.setdefault("processes",{})
+    if (
+            ( process_id := processes.get("bash") )
+            and ( process := PROCESSES.get(process_id) )
+        ):
+        print("Pulling from cached!")
+    else:
+        process = InvokeProcess("/bin/bash")
+        process.start()
+        process_id = id(process)
+        processes["bash"] = process_id
+        PROCESSES[process_id] = process
 
-    def on_read(data):
-        term.write(data.decode('utf-8'))
-    process = InvokeProcess(
-                        invoke_command="/bin/bash",
-                        on_read=on_read,
-                    )
-    await process.start()
-
-    async def on_render(e):
-        process.set_size(
-            await term.rows(),
-            await term.cols()
-        )
-    term.on("render", on_render)
-
-    async def on_resize(e):
-        if rows := e.args.get("rows"):
-            if cols := e.args.get("cols"):
-                process.set_size(rows, cols)
-    term.on("resize", on_resize)
-
-    async def on_input(e):
-        if isinstance(e.args, str):
-            data = e.args
-            await process.write(data)
-    term.on("input", on_input)
-
-    async def on_close(term):
-        await process.shutdown()
-    term.on_close(on_close)
+    with ui.element("div").classes("w-full h-screen m-0 p-0"):
+        with ui.column().classes("w-full h-full m-0 p-0"):
+            xterm.XTerm(process=process).classes("w-full h-full m-0 p-0")
+            ui.button("Close").on_click(lambda: process.write("exit\n"))
 
 
-# Run the NiceGUI app
-ui.run()
+ui.run(storage_secret="kjas;lkdjf;lasjdf;lijasd;fjaskdfa")
 
