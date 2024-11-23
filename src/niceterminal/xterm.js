@@ -25,7 +25,7 @@ export default {
       // Note: No flow control done at the moment:
       // see https://xtermjs.org/docs/guides/flowcontrol/
       if (this.term) {
-        this.term.write(data);
+        this.term.write(atob(data));
       }
     },
     fit() {
@@ -34,8 +34,13 @@ export default {
       }
     },
     // From: https://github.com/zauberzeug/nicegui/discussions/1846#discussion-5758110
-    call_api_method(name, ...args) {
+    callAPIMethod(name, ...args) {
       this.term[name](...args);
+    },
+    setCursorLocation(row, col) {
+      if (this.term) {
+        this.term.write(`\x1b[${row + 1};${col + 1}H`);
+      }
     },
     rows() {
       return this.term.rows;

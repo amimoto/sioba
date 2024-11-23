@@ -1,7 +1,7 @@
 from nicegui import ui, app
 from niceterminal import xterm
 
-from niceterminal.utils.subprocess import InvokeProcess 
+from niceterminal.utils.interface import PosixInterface, PersistentInterface
 
 PROCESSES = {}
 
@@ -21,23 +21,24 @@ async def index():
     dark.enable()
 
     # Let's start a process if it hasn't yet
-    processes = app.storage.user.setdefault("processes",{})
+    interfaces = app.storage.user.setdefault("interfaces",{})
     if (
-            ( process_id := processes.get("bash") )
-            and ( process := PROCESSES.get(process_id) )
+            ( interface_id := interfaces.get("bash") )
+            and ( interface := PROCESSES.get(interface_id) )
         ):
         print("Pulling from cached!")
     else:
-        process = InvokeProcess("/bin/bash")
-        process.start()
-        process_id = id(process)
-        processes["bash"] = process_id
-        PROCESSES[process_id] = process
+        primary_interface = PosixInterface("/bin/bash")
+        interface = PersistentInterface(primary_interface)
+        interface.start()
+        interface_id = id(interface)
+        interfaces["bash"] = interface_id
+        PROCESSES[interface_id] = interface
 
     with ui.element("div").classes("w-full h-screen m-0 p-0"):
         with ui.column().classes("w-full h-full m-0 p-0"):
-            xterm.XTerm(process=process).classes("w-full h-full m-0 p-0")
-            ui.button("Close").on_click(lambda: process.write("exit\n"))
+            xterm.XTerm(interface=interface).classes("w-full h-full m-0 p-0")
+            ui.button("Close").on_click(lambda: interface.write("exit\n"))
 
 
 ui.run(storage_secret="kjas;lkdjf;lasjdf;lijasd;fjaskdfa")

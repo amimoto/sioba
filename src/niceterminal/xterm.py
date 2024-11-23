@@ -2,16 +2,18 @@ import asyncio
 from pathlib import Path
 from typing import Optional
 
+import base64
+
 from nicegui import background_tasks
 from nicegui.client import Client
 
 from nicegui.elements.mixins.disableable_element import DisableableElement
 from nicegui.elements.mixins.value_element import ValueElement
-from niceterminal.utils.subprocess import InvokeProcess 
+from niceterminal.utils.interface import PosixInterface 
 
 from nicegui.awaitable_response import AwaitableResponse
 
-from niceterminal.utils.subprocess import InvokeProcess
+from niceterminal.utils.interface import PosixInterface
 
 class XTerm(
         ValueElement,
@@ -31,7 +33,7 @@ class XTerm(
         value: str = '',
         on_change: Optional[callable] = None,
         on_close: Optional[callable] = None,
-        process:InvokeProcess = None,
+        interface:PosixInterface = None,
     ) -> None:
         super().__init__(value=value, on_value_change=on_change)
         self.add_resource(Path(__file__).parent / 'lib' / 'xterm.js')
@@ -45,14 +47,16 @@ class XTerm(
                 name='auto-close terminal'
             )
 
-        if process:
-            self.connect_process(process)
+        if interface:
+            self.connect_process(interface)
 
     def call_terminal_method(self, name: str, *args) -> None:
-        self.run_method("call_api_method", name, *args)
+        self.run_method("callAPIMethod", name, *args)
 
-    def write(self, data:str) -> None:
-        self.run_method("write", data)
+    def write(self, data:str|bytes) -> None:
+        if isinstance(data, str):
+            data = data.encode()
+        self.run_method("write", base64.b64encode(data).decode())
 
     def fit(self, data:str) -> None:
         self.run_method("fit", data)
@@ -62,6 +66,9 @@ class XTerm(
 
     def cols(self) -> AwaitableResponse:
         return self.run_method("cols")
+
+    def set_cursor_location(self, row:int, col:int) -> AwaitableResponse:
+        self.run_method("setCursorLocation", row, col)
 
     def sync_with_frontend(self) -> None:
         self.backend_output = "\n".join(self.screen.display)
@@ -76,10 +83,11 @@ class XTerm(
     def on_close(self, callback) -> None:
         self.on_close_callback = callback
 
-    def connect_process(self, process:InvokeProcess) -> None:
+    def connect_process(self, process:PosixInterface) -> None:
         """ Connects the XTerm to an InvokeProcess object """ 
-        def on_read(data):
-            self.write(data.decode('utf-8'))
+        def on_read(_, data):
+            if self.client.id in Client.instances:
+                self.write(data)
         process.on_read(on_read)
 
         self.process = process
@@ -103,13 +111,22 @@ class XTerm(
                 await self.process.write(data)
         self.on("input", on_input)
 
-        #async def on_close(self):
-        #    await self.process.shutdown()
-        #self.on_close(on_close)
+        async def on_close(self):
+            await self.process.shutdown()
+        self.on_close(on_close)
+
+        def on_exit(_):
+            self.write("[Process Exited]\n\r")
+        process.on_exit(on_exit)
 
         if not self.client.shared:
             background_tasks.create(
                 self.process.start(),
                 name='Invoke process handling'
             )
+
+        current_screen = self.process.get_screen_display()
+        cursor_x, cursor_y = self.process.get_cursor_position()
+        self.write(current_screen)
+        self.set_cursor_location(cursor_y, cursor_x)
 
