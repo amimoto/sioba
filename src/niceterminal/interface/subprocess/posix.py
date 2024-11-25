@@ -20,6 +20,7 @@ class PosixInterface(Interface):
                  on_exit:Callable=None,
                  cwd:str=None,
                  ):
+        super().__init__(on_read, on_exit)
         self.primary_fd, self.subordinate_fd = pty.openpty()
         self.invoke_command = invoke_command
         self.shutdown_command = shutdown_command
