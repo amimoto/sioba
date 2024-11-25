@@ -8,11 +8,9 @@ import termios
 
 from typing import Callable
 
-from ..base import Interface
+from ..base import Interface, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
 
-INTERFACE_STATE_INITIALIZED = 0
-INTERFACE_STATE_STARTED = 1
-INTERFACE_STATE_SHUTDOWN = 2
+from loguru import logger
 
 class PosixInterface(Interface):
     def __init__(self,
@@ -27,22 +25,8 @@ class PosixInterface(Interface):
         self.shutdown_command = shutdown_command
         self.cwd = cwd
         self.process = None
-        self._on_read = []
-        self.on_exit_handle = []
-        self.state = INTERFACE_STATE_INITIALIZED
-        if on_read:
-            self._on_read.append(on_read)
-        if on_exit:
-            self.on_exit_handle.append(on_exit)
 
-    def on_read(self, on_read:Callable):
-        if on_read not in self._on_read:
-            self._on_read.append(on_read)
-
-    def on_exit(self, on_exit:Callable):
-        if on_exit not in self.on_exit_handle:
-            self.on_exit_handle.append(on_exit)
-
+    @logger.catch
     async def start(self):
         """Starts the shell process asynchronously."""
         if self.state != INTERFACE_STATE_INITIALIZED:
@@ -58,31 +42,25 @@ class PosixInterface(Interface):
             executable='/bin/bash',
         )
         loop = asyncio.get_running_loop()
-        loop.add_reader(self.primary_fd, self._on_data_available)
+        loop.add_reader(self.primary_fd, self._read_loop)
         asyncio.create_task(self._monitor_exit())  # Monitor process exit
 
-    def _on_data_available(self):
+    @logger.catch
+    def _read_loop(self):
         """Callback when data is available to read from the shell."""
         if data := os.read(self.primary_fd, 10240):
-            for on_read in self._on_read:
-                try:
-                    on_read(self, data)
-                except OSError as e:
-                    print(e)
-                    print(dir(e))
+            self.on_read_handle(data)
         else:
             print(f"NO DATA {self.process.pid} {self.process.returncode} {type(data)}")
 
+    @logger.catch
     async def write(self, data):
         """Writes data to the shell."""
         if self.state != INTERFACE_STATE_STARTED:
             return
-        try:
-            os.write(self.primary_fd, data.encode('utf-8'))
-        except OSError as e:
-            print(e)
-            print(dir(e))
+        os.write(self.primary_fd, data.encode('utf-8'))
 
+    @logger.catch
     def set_size(self, row, col, xpix=0, ypix=0):
         """Sets the shell window size."""
         if self.state != INTERFACE_STATE_STARTED:
