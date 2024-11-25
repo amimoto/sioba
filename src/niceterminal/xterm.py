@@ -9,11 +9,9 @@ from nicegui.client import Client
 
 from nicegui.elements.mixins.disableable_element import DisableableElement
 from nicegui.elements.mixins.value_element import ValueElement
-from niceterminal.utils.interface import PosixInterface 
+from niceterminal.interface.base import Interface 
 
 from nicegui.awaitable_response import AwaitableResponse
-
-from niceterminal.utils.interface import PosixInterface
 
 class XTerm(
         ValueElement,
@@ -33,7 +31,7 @@ class XTerm(
         value: str = '',
         on_change: Optional[callable] = None,
         on_close: Optional[callable] = None,
-        interface:PosixInterface = None,
+        interface:Interface = None,
     ) -> None:
         super().__init__(value=value, on_value_change=on_change)
         self.add_resource(Path(__file__).parent / 'lib' / 'xterm.js')
@@ -83,7 +81,7 @@ class XTerm(
     def on_close(self, callback) -> None:
         self.on_close_callback = callback
 
-    def connect_process(self, process:PosixInterface) -> None:
+    def connect_process(self, process:Interface) -> None:
         """ Connects the XTerm to an InvokeProcess object """ 
         def on_read(_, data):
             if self.client.id in Client.instances:

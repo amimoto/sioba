@@ -1,0 +1,1 @@
+pdm run python src\main.py
