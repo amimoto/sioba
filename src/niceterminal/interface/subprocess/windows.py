@@ -23,7 +23,7 @@ class WindowsInterface(Interface):
         self.process = None
 
     @logger.catch
-    async def launch_process(self):
+    async def launch_interface(self):
         """Starts the shell process asynchronously."""
         if self.state != INTERFACE_STATE_INITIALIZED:
             return
@@ -44,11 +44,11 @@ class WindowsInterface(Interface):
         asyncio.create_task(self._on_exit_handlers())
 
     @logger.catch
-    def set_size(self, row, col, xpix=0, ypix=0):
+    def set_size(self, rows, cols, xpix=0, ypix=0):
         """Sets the shell window size."""
         if self.state != INTERFACE_STATE_STARTED:
             return
-        self.process.set_size(col, row)
+        self.process.set_size(rows=rows, cols=cols)
 
     @logger.catch
     def _read_loop(self):

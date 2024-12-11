@@ -93,9 +93,6 @@ export default {
     this.term.open(this.$el);
     this.bufferInitialized = false;
 
-    // Initial fit
-    this.fit();
-
     // Handle terminal input
     this.term.onData((e) => {
       this.$emit('data', btoa(e), socket.id);
@@ -148,6 +145,9 @@ export default {
 
     // Fit terminal on window resize
     window.addEventListener('resize', this.fit);
+
+    // Initial fit
+    this.fit();
 
     this.$emit('mount', {
       rows: this.term.rows,

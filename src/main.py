@@ -11,7 +11,7 @@ from loguru import logger
 
 import sys
 
-PROCESSES = {}
+INTERFACES = {}
 
 logger.warning("Launching GUI")
 
@@ -33,20 +33,20 @@ async def index():
     dark = ui.dark_mode()
     dark.enable()
 
-    # Let's start a process if it hasn't yet
+    # Let's start an interface if it hasn't yet
     logger.warning("Testing storage")
     interfaces = app.storage.user.setdefault("interfaces",{})
     if (
             ( interface_id := interfaces.get("bash") )
-            and ( interface := PROCESSES.get(interface_id) )
+            and ( interface := INTERFACES.get(interface_id) )
         ):
         logger.warning("Pulling from cached!")
     else:
         interface = ShellInterface()
-        interface.launch_process()
+        interface.launch_interface()
         interface_id = id(interface)
         interfaces["bash"] = interface_id
-        PROCESSES[interface_id] = interface
+        INTERFACES[interface_id] = interface
 
     with ui.element("div").classes("w-full h-screen m-0 p-0"):
         with ui.column().classes("w-full h-full m-0 p-0"):

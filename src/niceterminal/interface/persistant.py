@@ -8,15 +8,15 @@ from loguru import logger
 
 class PersistentInterface(Interface):
     """Wraps an InvokeProcess to provide pyte terminal emulation capabilities"""
-    process = None
+    child_interface = None
 
     def __init__(self,
-                 process: Interface,
+                 child_interface: Interface,
                  on_read: Callable = None,
                  on_exit: Callable = None,
                  cols: int = 80,
                  rows: int = 24):
-        self.process = process
+        self.child_interface = child_interface
         super().__init__(on_read=on_read, on_exit=on_exit)
 
         # Initialize pyte screen and stream
@@ -24,13 +24,21 @@ class PersistentInterface(Interface):
         self.stream = pyte.Stream(self.screen)
 
         # Wrap the process's on_read with our pyte handler
-        self.process.on_read(self._pyte_handler)
+        self.child_interface.on_read(self._pyte_handler)
 
     @logger.catch
-    def _pyte_handler(self, process:Interface, data: bytes):
+    def _pyte_handler(self, interface:Interface, data: bytes):
         """Handler that updates the pyte screen before passing data through"""
         try:
             self.stream.feed(data.decode('utf-8'))
+        except TypeError as ex:
+            # We occasionally get errors like
+            # TypeError: Screen.select_graphic_rendition() got
+            # an unexpected keyword argument 'private'. It might be
+            # related to using xterm rather than vt100 see:
+            # https://github.com/selectel/pyte/issues/126
+            print(ex.args)
+            pass
         except UnicodeDecodeError:
             self.stream.feed(data.decode('utf-8', errors='replace'))
 
@@ -38,31 +46,31 @@ class PersistentInterface(Interface):
     @logger.catch
     def on_read(self, on_read: Callable):
         """Add a callback for when data is received"""
-        self.process.on_read(on_read)
+        self.child_interface.on_read(on_read)
 
     @logger.catch
-    async def launch_process(self):
+    async def launch_interface(self):
         """Starts the shell process asynchronously."""
         try:
-            await self.process.launch_process()
+            await self.child_interface.launch_interface()
         except Exception as e:
             logger.error(f"Error launching process: {e}")
 
     @logger.catch
     async def write(self, data: bytes):
         """Writes data to the shell."""
-        await self.process.write(data)
+        await self.child_interface.write(data)
 
     @logger.catch
-    def set_size(self, row, col, xpix=0, ypix=0):
+    def set_size(self, rows, cols, xpix=0, ypix=0):
         """Sets the shell window size."""
-        self.process.set_size(row, col, xpix, ypix)
-        self.screen.resize(lines=row, columns=col)
+        self.child_interface.set_size(rows=rows, cols=cols, xpix=xpix, ypix=ypix)
+        self.screen.resize(lines=rows, columns=cols)
 
     @logger.catch
     async def shutdown(self):
-        """Shuts down the shell process."""
-        #await self.process.shutdown()
+        """Shuts down the interface."""
+        #await self.interface.shutdown()
         pass
 
     def dump_screen_state(self, screen: pyte.Screen) -> str:
@@ -188,9 +196,9 @@ class PersistentInterface(Interface):
     @logger.catch
     def running(self) -> bool:
         """Check if the process is running"""
-        return self.process.running()
+        return self.child_interface.running()
 
     @logger.catch
     def __getattr__(self, name):
         """Delegate any other attributes to the wrapped process"""
-        return getattr(self.process, name)
+        return getattr(self.child_interface, name)

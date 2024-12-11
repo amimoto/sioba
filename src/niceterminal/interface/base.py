@@ -25,8 +25,34 @@ class Interface:
         if on_exit:
             self.on_exit(on_exit)
 
+        # Holds infomation on each terminial client
+        # Things such as rows, cols
+        self.term_clients = {}
+
+    def rows(self) -> int:
+        return self.rows
+
+    def cols(self) -> int:
+        return self.cols
+
+    def term_client_metadata_update(self, client_id:str, data:dict) -> None:
+        self.term_clients.setdefault(client_id, {})
+        self.term_clients[client_id].update(data)
+
+        min_row = None
+        min_col = None
+        for client_id, data in self.term_clients.items():
+            if min_row is None or data["rows"] < min_row:
+                min_row = data["rows"]
+            if min_col is None or data["cols"] < min_col:
+                min_col = data["cols"]
+        self.rows = min_row
+        self.cols = min_col
+
+        self.set_size(rows=self.rows, cols=self.cols)
+
     def start(self) -> "Interface":
-        """Start the shell process."""
+        """Start the interface."""
 
         global INTERFACE_THREAD
         global INTERFACE_LOOP
@@ -53,13 +79,13 @@ class Interface:
 
         # Schedule a task in the new loop to start the shell process
         asyncio.run_coroutine_threadsafe(
-                    self.launch_process(),
+                    self.launch_interface(),
                     INTERFACE_LOOP
                 )
 
         return self
 
-    async def launch_process(self):
+    async def launch_interface(self):
         """Starts the shell process asynchronously."""
         pass
 
@@ -95,7 +121,7 @@ class Interface:
         for on_exit in self._on_exit_callbacks:
             on_exit(self)
 
-    def set_size(self, row, col, xpix=0, ypix=0):
+    def set_size(self, rows, cols, xpix=0, ypix=0):
         """Sets the shell window size."""
         pass
 

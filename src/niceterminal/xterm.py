@@ -50,10 +50,6 @@ class XTerm(
         self.add_resource(Path(__file__).parent / 'lib' / 'xterm.js')
         self.on_close_callback = on_close
 
-        # Holds infomation on each terminial client
-        # Things such as rows, cols
-        self.term_clients = {}
-
         self.rows = rows
         self.cols = cols
 
@@ -64,7 +60,7 @@ class XTerm(
             )
 
         if interface:
-            self.connect_process(interface)
+            self.connect_interface(interface)
 
         # Check if the root route is defined
         for route in app.routes:
@@ -87,11 +83,8 @@ class XTerm(
             return
         if isinstance(data, str):
             raise TypeError("data must be bytes")
-        with self:
-            serialized_data = base64.b64encode(data).decode()
-            ui.run_javascript(
-                f"runMethod({self.id}, 'write', ['{serialized_data}']);"
-            )
+        serialized_data = base64.b64encode(data).decode()
+        self.run_method("write", serialized_data)
 
     def fit(self, data:str) -> None:
         if core.loop is None:
@@ -99,10 +92,10 @@ class XTerm(
         self.run_method("fit", data)
 
     def rows(self) -> int:
-        return self.rows
+        return self.interface.rows
 
-    def cols(self) -> AwaitableResponse:
-        return self.cols
+    def cols(self) -> int:
+        return self.interface.cols
 
     def set_cursor_location(self, row:int, col:int) -> AwaitableResponse:
         self.run_method("setCursorLocation", row, col)
@@ -114,9 +107,9 @@ class XTerm(
         if core.loop is None:
             return
 
-        cursor_position = self.process.get_cursor_position()
+        cursor_position = self.interface.get_cursor_position()
 
-        data = self.process.get_screen_display()
+        data = self.interface.get_screen_display()
         if isinstance(data, str):
             data = data.encode()
 
@@ -140,39 +133,31 @@ class XTerm(
     def client_is_auto_index(self) -> bool:
         return self.client.is_auto_index_client
 
-    def term_client_metadata_update(self, client_id:str, data:dict) -> None:
-        self.term_clients.setdefault(client_id, {})
-        self.term_clients[client_id].update(data)
-
-        min_row = None
-        min_col = None
-        for client_id, data in self.term_clients.items():
-            if min_row is None or data["rows"] < min_row:
-                min_row = data["rows"]
-            if min_col is None or data["cols"] < min_col:
-                min_col = data["cols"]
-        self.rows = min_row
-        self.cols = min_col
-
-    def connect_process(self, process:Interface) -> None:
+    def connect_interface(self, interface:Interface) -> None:
         """ Connects the XTerm to an InvokeProcess object """ 
-        self.process = process
+        self.interface = interface
 
         #######################################################################
 
-        def process_on_read(_, data):
+        def interface_on_read(_, data):
             if self.client.id in Client.instances:
                 self.write(data)
-        process.on_read(process_on_read)
+        interface.on_read(interface_on_read)
 
         def on_exit(_):
-            self.write("[Process Exited]\n\r")
-        process.on_exit(on_exit)
+            self.write("[Interface Exited]\n\r")
+        interface.on_exit(on_exit)
 
         #######################################################################
 
         async def client_on_render(e):
-            self.process.set_size(self.rows, self.cols)
+            (data, sio_sid) = e.args
+            self.interface.term_client_metadata_update(
+                        f"{self.client.id}-{sio_sid}",
+                        {
+                            "rows": self.rows,
+                            "cols": self.cols
+                        })
         self.on("render", client_on_render)
 
         async def client_on_resize(e):
@@ -183,24 +168,26 @@ class XTerm(
             if not (rows and cols):
                 return
 
-            self.term_client_metadata_update(
+            print(f"RESIZE {rows=}x{cols=}")
+            self.interface.term_client_metadata_update(
                         f"{self.client.id}-{sio_sid}",
                         {
                             "rows": rows,
                             "cols": cols
                         })
-            self.process.set_size(rows, cols)
+
         self.on("resize", client_on_resize)
 
         async def client_on_data(e):
             (data, _) = e.args
             if isinstance(data, str):
-                await self.process.write(base64.b64decode(data))
+                await self.interface.write(base64.b64decode(data))
         self.on("data", client_on_data)
 
-        async def process_on_close(self):
-            await self.process.shutdown()
-        self.on_close(process_on_close)
+        async def interface_on_close(self):
+            if self.interface:
+                await self.interface.shutdown()
+        self.on_close(interface_on_close)
 
         def client_on_connect(client: Client):
             print("CONNECTED!", client)
@@ -226,8 +213,8 @@ class XTerm(
 
         if not self.client.shared:
             background_tasks.create(
-                self.process.launch_process(),
-                name='Invoke process handling'
+                self.interface.launch_interface(),
+                name='Invoke interface task'
             )
 
     def __getattr__(self, name):

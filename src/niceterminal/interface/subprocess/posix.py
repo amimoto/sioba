@@ -28,7 +28,7 @@ class PosixInterface(Interface):
         self.process = None
 
     @logger.catch
-    async def launch_process(self):
+    async def launch_interface(self):
         """Starts the shell process asynchronously."""
         if self.state != INTERFACE_STATE_INITIALIZED:
             return
@@ -66,11 +66,11 @@ class PosixInterface(Interface):
         os.write(self.primary_fd, data)
 
     @logger.catch
-    def set_size(self, row, col, xpix=0, ypix=0):
+    def set_size(self, rows, cols, xpix=0, ypix=0):
         """Sets the shell window size."""
         if self.state != INTERFACE_STATE_STARTED:
             return
-        winsize = struct.pack("HHHH", row, col, xpix, ypix)
+        winsize = struct.pack("HHHH", rows, cols, xpix, ypix)
         fcntl.ioctl(self.subordinate_fd, termios.TIOCSWINSZ, winsize)
         pgrp = os.getpgid(self.process.pid)
         os.killpg(pgrp, signal.SIGWINCH)
