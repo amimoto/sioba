@@ -247,11 +247,6 @@ dist
 *.swp
 *.bak
 
-# Test Crossbar Server files we don't want stored
-test-password.txt
-key.priv
-key.pub
-
 experiments
 
 volumes
@@ -352,3 +347,6 @@ lerna-debug.log
 Thumbs.db
 
 .nicegui
+
+# Since this is a library not an application
+pdm.lock

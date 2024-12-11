@@ -21,11 +21,20 @@ export default {
     },
   },
   methods: {
-    write(data) {
+    async write(data) {
       // Note: No flow control done at the moment:
       // see https://xtermjs.org/docs/guides/flowcontrol/
       if (this.term) {
-        this.term.write(atob(data));
+        const decoded = new TextDecoder().decode(
+          Uint8Array.from(atob(data), c => c.charCodeAt(0))
+        );
+        this.term.write(decoded);
+      }
+    },
+    refreshScreen(data) {
+      if (this.term && !self.bufferInitialized) {
+        self.bufferInitialized = true;
+        this.write(data);
       }
     },
     fit() {
@@ -49,6 +58,11 @@ export default {
       return this.term.cols;
     },
 
+    noop() {
+      // Do nothing
+      return null;
+    },
+
   },
   async mounted() {
     await this.$nextTick(); // Wait for window.path_prefix to be set
@@ -56,63 +70,75 @@ export default {
     // Dynamically import xterm.js and addons
     const {Terminal, FitAddon, SearchAddon, WebLinksAddon, AttachAddon, ClipboardAddon } = await import(window.path_prefix + `${this.resource_path}/xterm.js`);
 
-    this.term = new Terminal(this.options);
+    let options = {
+      cursorBlink: true,
+      cursorStyle: 'block',
+      // fontSize: 16,
+      fontFamily: 'monospace',
+      allowProposedApi: true,
+      charset: 'UTF-8',
+      theme: {
+        background: '#000000',
+        foreground: '#FFFFFF',
+      },
+      ...this.options,
+    }
+
+    this.term = new Terminal(options);
     this.fitAddon = new FitAddon();
     this.searchAddon = new SearchAddon();
     this.webLinksAddon = new WebLinksAddon();
     this.clibboardAddon = new ClipboardAddon();
     this.term.loadAddon(this.fitAddon);
     this.term.open(this.$el);
+    this.bufferInitialized = false;
 
     // Initial fit
     this.fit();
 
-    console.log("Terminal mounted", this.term.cols, this.term.rows);
-
     // Handle terminal input
-    this.term.onData((data) => {
-      this.$emit('input', data);
+    this.term.onData((e) => {
+      this.$emit('data', btoa(e), socket.id);
     });
 
     this.term.onKey((e) => {
-      this.$emit('key', e);
+      this.$emit('key', e, socket.id);
     });
 
     this.term.onBell((e) => {
-      this.$emit('bell', e);
+      this.$emit('bell', e, socket.id);
     });
 
     this.term.onBinary((e) => {
-      this.$emit('binary', e);
+      this.$emit('binary', e, socket.id);
     });
 
     this.term.onCursorMove((e) => {
-      this.$emit('cursor_move', e);
+      this.$emit('cursor_move', e, socket.id);
     });
 
     this.term.onLineFeed((e) => {
-      this.$emit('line_feed', e);
+      this.$emit('line_feed', e, socket.id);
     });
 
     this.term.onRender((e) => {
-      this.$emit('render', e);
+      this.$emit('render', e, socket.id);
     });
 
     this.term.onResize((e) => {
-      console.log("EMIT resize", e);
-      this.$emit('resize', e);
+      this.$emit('resize', e, socket.id)
     });
 
     this.term.onScroll((e) => {
-      this.$emit('scroll', e);
+      this.$emit('scroll', e, socket.id);
     });
 
     this.term.onTitleChange((e) => {
-      this.$emit('title_change', e);
+      this.$emit('title_change', e, socket.id);
     });
 
     this.term.onWriteParsed((e) => {
-      this.$emit('write_parsed', e);
+      this.$emit('write_parsed', e, socket.id);
     });
 
     // Write initial value
@@ -122,6 +148,19 @@ export default {
 
     // Fit terminal on window resize
     window.addEventListener('resize', this.fit);
+
+    this.$emit('mount', {
+      rows: this.term.rows,
+      cols: this.term.cols
+    }, socket.id);
+
+    this.$emit('resize', {
+      rows: this.term.rows,
+      cols: this.term.cols
+    }, socket.id);
+
+    console.log("Terminal mounted", this.term.cols, this.term.rows, this);
+
   },
   beforeDestroy() {
     if (this.term) {

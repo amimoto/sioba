@@ -23,8 +23,8 @@ class ShellInterface(PersistentInterface):
                 on_read: Callable = None,
                 on_exit: Callable = None,
                 cwd: str = None,
-                columns: int = 80,
-                lines: int = 24,
+                cols: int = 80,
+                rows: int = 24,
             ):
         super().__init__(
                         SubprocessInterface(
@@ -34,6 +34,6 @@ class ShellInterface(PersistentInterface):
                         ),
                         on_read=on_read,
                         on_exit=on_exit,
-                        columns=columns,
-                        lines=lines,
+                        cols=cols,
+                        rows=rows,
                     )

@@ -1,10 +1,16 @@
+import threading
+import asyncio
+import time
 from typing import Callable
+
+from loguru import logger
 
 INTERFACE_STATE_INITIALIZED = 0
 INTERFACE_STATE_STARTED = 1
 INTERFACE_STATE_SHUTDOWN = 2
 
-from loguru import logger
+INTERFACE_THREAD = None
+INTERFACE_LOOP = None
 
 class Interface:
     def __init__(self,
@@ -19,7 +25,41 @@ class Interface:
         if on_exit:
             self.on_exit(on_exit)
 
-    async def start(self):
+    def start(self) -> "Interface":
+        """Start the shell process."""
+
+        global INTERFACE_THREAD
+        global INTERFACE_LOOP
+
+        if self.state != INTERFACE_STATE_INITIALIZED:
+            return
+
+        # Start a new single event loop in a separate thread for all interfaces
+        def start_threading_loop():
+            global INTERFACE_LOOP
+            INTERFACE_LOOP = asyncio.new_event_loop()
+            asyncio.set_event_loop(INTERFACE_LOOP)
+            INTERFACE_LOOP.run_forever()
+
+        if not INTERFACE_THREAD:
+            INTERFACE_THREAD = threading.Thread(target=start_threading_loop, daemon=True)
+            INTERFACE_THREAD.start()
+
+        # Wait till we have a loop running
+        while True:
+            if INTERFACE_LOOP:
+                break
+            time.sleep(0.1)
+
+        # Schedule a task in the new loop to start the shell process
+        asyncio.run_coroutine_threadsafe(
+                    self.launch_process(),
+                    INTERFACE_LOOP
+                )
+
+        return self
+
+    async def launch_process(self):
         """Starts the shell process asynchronously."""
         pass
 
@@ -65,9 +105,6 @@ class Interface:
 
     def get_cursor_position(self) -> tuple:
         return (0, 0)
-
-    async def start(self):
-        pass
 
     def running(self) -> bool:
         return self.state == INTERFACE_STATE_STARTED

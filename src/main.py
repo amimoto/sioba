@@ -43,7 +43,7 @@ async def index():
         logger.warning("Pulling from cached!")
     else:
         interface = ShellInterface()
-        interface.start()
+        interface.launch_process()
         interface_id = id(interface)
         interfaces["bash"] = interface_id
         PROCESSES[interface_id] = interface

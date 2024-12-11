@@ -23,7 +23,7 @@ class WindowsInterface(Interface):
         self.process = None
 
     @logger.catch
-    async def start(self):
+    async def launch_process(self):
         """Starts the shell process asynchronously."""
         if self.state != INTERFACE_STATE_INITIALIZED:
             return

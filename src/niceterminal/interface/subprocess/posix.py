@@ -28,11 +28,12 @@ class PosixInterface(Interface):
         self.process = None
 
     @logger.catch
-    async def start(self):
+    async def launch_process(self):
         """Starts the shell process asynchronously."""
         if self.state != INTERFACE_STATE_INITIALIZED:
             return
         self.state = INTERFACE_STATE_STARTED
+
         self.process = await asyncio.create_subprocess_shell(
             self.invoke_command,
             preexec_fn=os.setsid,
@@ -46,6 +47,9 @@ class PosixInterface(Interface):
         loop.add_reader(self.primary_fd, self._read_loop)
         asyncio.create_task(self._monitor_exit())  # Monitor process exit
 
+        logger.debug(f"Started process {self.process.pid} {self.invoke_command}")
+        logger.warning(f"Started process {self.process.pid} {self.invoke_command}")
+
     @logger.catch
     def _read_loop(self):
         """Callback when data is available to read from the shell."""
@@ -55,11 +59,11 @@ class PosixInterface(Interface):
             print(f"NO DATA {self.process.pid} {self.process.returncode} {type(data)}")
 
     @logger.catch
-    async def write(self, data):
+    async def write(self, data: bytes):
         """Writes data to the shell."""
         if self.state != INTERFACE_STATE_STARTED:
             return
-        os.write(self.primary_fd, data.encode('utf-8'))
+        os.write(self.primary_fd, data)
 
     @logger.catch
     def set_size(self, row, col, xpix=0, ypix=0):
@@ -71,6 +75,7 @@ class PosixInterface(Interface):
         pgrp = os.getpgid(self.process.pid)
         os.killpg(pgrp, signal.SIGWINCH)
 
+    @logger.catch
     async def _monitor_exit(self):
         """Monitors process exit and handles cleanup."""
         await self.process.wait()  # Wait until the process exits
@@ -79,6 +84,7 @@ class PosixInterface(Interface):
         for on_exit in self.on_exit_handle:
             on_exit(self)
 
+    @logger.catch
     async def shutdown(self):
         """Shuts down the shell process."""
         if self.state == INTERFACE_STATE_STARTED:
