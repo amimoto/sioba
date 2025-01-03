@@ -22,6 +22,7 @@ class ShellInterface(PersistentInterface):
                 shutdown_command: str = None,
                 on_read: Callable = None,
                 on_exit: Callable = None,
+                on_set_title: Callable = None,
                 cwd: str = None,
                 cols: int = 80,
                 rows: int = 24,
@@ -34,6 +35,7 @@ class ShellInterface(PersistentInterface):
                         ),
                         on_read=on_read,
                         on_exit=on_exit,
+                        on_set_title=on_set_title,
                         cols=cols,
                         rows=rows,
                     )

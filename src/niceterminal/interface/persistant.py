@@ -6,6 +6,18 @@ from .base import Interface
 
 from loguru import logger
 
+class EventsScreen(pyte.Screen):
+
+    def __init__(self, columns: int, lines: int, on_set_title: Callable = None) -> None:
+        super().__init__(columns=columns, lines=lines)
+        self.on_set_title_handle = on_set_title
+
+    def set_title(self, param: str) -> None:
+        super().set_title(param)
+        if self.on_set_title_handle:
+            self.on_set_title_handle(param)
+
+
 class PersistentInterface(Interface):
     """Wraps an InvokeProcess to provide pyte terminal emulation capabilities"""
     child_interface = None
@@ -14,13 +26,14 @@ class PersistentInterface(Interface):
                  child_interface: Interface,
                  on_read: Callable = None,
                  on_exit: Callable = None,
+                 on_set_title: Callable = None,
                  cols: int = 80,
-                 rows: int = 24):
+                 rows: int = 24) -> None:
         self.child_interface = child_interface
-        super().__init__(on_read=on_read, on_exit=on_exit)
+        super().__init__(on_read=on_read, on_exit=on_exit, on_set_title=on_set_title)
 
         # Initialize pyte screen and stream
-        self.screen = pyte.Screen(cols, rows)
+        self.screen = EventsScreen(cols, rows, self.on_set_title_handle)
         self.stream = pyte.Stream(self.screen)
 
         # Wrap the process's on_read with our pyte handler

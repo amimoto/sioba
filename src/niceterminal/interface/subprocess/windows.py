@@ -71,7 +71,7 @@ class WindowsInterface(Interface):
             try:
                 self.process.terminate()
             except Exception as e:
-                print(f"Error terminating process: {e}")
+                logger.warning(f"Error terminating process: {e}")
         self.state = INTERFACE_STATE_SHUTDOWN
 
     @logger.catch
@@ -83,4 +83,4 @@ class WindowsInterface(Interface):
             await self.shutdown()
             self._on_exit_handlers()
         except Exception as e:
-            print(f"Error monitoring process exit: {e}")
+            logger.wraning(f"Error monitoring process exit: {e}")

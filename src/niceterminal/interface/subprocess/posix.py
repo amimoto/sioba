@@ -55,8 +55,6 @@ class PosixInterface(Interface):
         """Callback when data is available to read from the shell."""
         if data := os.read(self.primary_fd, 10240):
             self.on_read_handle(data)
-        else:
-            print(f"NO DATA {self.process.pid} {self.process.returncode} {type(data)}")
 
     @logger.catch
     async def write(self, data: bytes):

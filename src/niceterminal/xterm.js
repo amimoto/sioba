@@ -150,7 +150,6 @@ export default {
     // Fit terminal on window resize
     window.addEventListener('resize', this.fit);
     this.term.onResize(this.fit);
-    console.log("SENDING RESIZE THINGY")
 
     this.$emit('mount', {
       rows: this.term.rows,

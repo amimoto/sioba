@@ -217,15 +217,7 @@ class XTerm(
             """Handle client render events."""
             data, sio_sid = e.args
             client_id = f"{self.client.id}-{sio_sid}"
-
             self.metadata.connected_clients.add(client_id)
-            interface.term_client_metadata_update(
-                client_id,
-                {
-                    "rows": self.config.rows,
-                    "cols": self.config.cols
-                }
-            )
 
         async def handle_client_resize(e: Any) -> None:
             """Handle terminal resize events."""

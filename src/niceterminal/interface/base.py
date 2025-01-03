@@ -17,17 +17,22 @@ class Interface:
     def __init__(self,
                  on_read: Callable = None,
                  on_exit: Callable = None,
+                 on_set_title: Callable = None,
                  ):
 
         self.id = str(uuid.uuid4())
+        self.title = ""
 
         self._on_read_callbacks = set()
         self._on_exit_callbacks = set()
+        self._on_set_title_callbacks = set()
         self.state = INTERFACE_STATE_INITIALIZED
         if on_read:
             self.on_read(on_read)
         if on_exit:
             self.on_exit(on_exit)
+        if on_set_title:
+            self.on_set_title(on_set_title)
 
         # Holds infomation on each terminial client
         # Things such as rows, cols
@@ -108,11 +113,23 @@ class Interface:
         self._on_read_callbacks.add(on_read)
 
     @logger.catch
-    def on_read_handle(self, data:bytes):
+    def on_read_handle(self, data: bytes):
         """Callback when data is available to read from the shell."""
         if data:
             for on_read in self._on_read_callbacks:
                 on_read(self, data)
+
+    @logger.catch
+    def on_set_title(self, on_set_title: Callable):
+        """Add a callback for when the window title is set"""
+        self._on_set_title_callbacks.add(on_set_title)
+
+    @logger.catch
+    def on_set_title_handle(self, title:str):
+        """Callback when the window title is set."""
+        self.title = title
+        for on_set_title in self._on_set_title_callbacks:
+            on_set_title(self, title)
 
     @logger.catch
     def on_exit(self, on_exit: Callable):
@@ -124,6 +141,9 @@ class Interface:
         """Callback when the shell process exits."""
         for on_exit in self._on_exit_callbacks:
             on_exit(self)
+
+    def set_title(self, name:str):
+        self.on_set_title_handle(name)
 
     def set_size(self, rows, cols, xpix=0, ypix=0):
         """Sets the shell window size."""
