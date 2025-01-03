@@ -1,6 +1,6 @@
 export default {
   template: `
-    <div></div>
+    <div class="p-0 m-0 bg-black"></div>
   `,
   props: {
     value: String,
@@ -123,6 +123,7 @@ export default {
     });
 
     this.term.onResize((e) => {
+      console.log("Terminal resized", e.cols, e.rows);
       this.$emit('resize', e, socket.id)
     });
 
@@ -143,11 +144,13 @@ export default {
       this.term.write(this.value);
     }
 
-    // Fit terminal on window resize
-    window.addEventListener('resize', this.fit);
-
     // Initial fit
     this.fit();
+
+    // Fit terminal on window resize
+    window.addEventListener('resize', this.fit);
+    this.term.onResize(this.fit);
+    console.log("SENDING RESIZE THINGY")
 
     this.$emit('mount', {
       rows: this.term.rows,

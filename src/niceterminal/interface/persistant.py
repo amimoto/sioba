@@ -37,8 +37,10 @@ class PersistentInterface(Interface):
             # an unexpected keyword argument 'private'. It might be
             # related to using xterm rather than vt100 see:
             # https://github.com/selectel/pyte/issues/126
-            print(ex.args)
-            pass
+            if ex.args and "unexpected keyword argument 'private'" in ex.args[0]:
+                pass
+            else:
+                raise
         except UnicodeDecodeError:
             self.stream.feed(data.decode('utf-8', errors='replace'))
 

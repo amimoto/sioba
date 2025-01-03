@@ -2,6 +2,7 @@ import threading
 import asyncio
 import time
 from typing import Callable
+import uuid
 
 from loguru import logger
 
@@ -17,6 +18,9 @@ class Interface:
                  on_read: Callable = None,
                  on_exit: Callable = None,
                  ):
+
+        self.id = str(uuid.uuid4())
+
         self._on_read_callbacks = set()
         self._on_exit_callbacks = set()
         self.state = INTERFACE_STATE_INITIALIZED

@@ -1,58 +1,146 @@
-import asyncio
-from pathlib import Path
-from typing import Optional, Callable
+"""
+NiceGUI XTerm Component
+======================
 
+This module provides an XTerm.js integration for NiceGUI, allowing for terminal
+emulation in web applications. It supports both standalone terminals and shell
+interfaces.
+
+Example:
+    Basic usage with shell interface:
+        >>> from nicegui import ui
+        >>> from niceterminal.xterm import ShellXTerm
+        >>>
+        >>> term = ShellXTerm()
+        >>> term.classes("w-full h-full")
+        >>> ui.run()
+
+    Advanced usage with custom interface:
+        >>> term = XTerm(
+        ...     config=TerminalConfig(rows=40, cols=100),
+        ...     interface=CustomInterface(),
+        ...     on_close=lambda t: print("Terminal closed")
+        ... )
+"""
+
+import asyncio
 import base64
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from pathlib import Path
+from typing import Optional, Callable, Dict, Any, Tuple, Set
 
 from loguru import logger
-
 from nicegui import background_tasks, ui, core, app
-from nicegui.nicegui import sio
 from nicegui.client import Client
-
 from nicegui.elements.mixins.disableable_element import DisableableElement
 from nicegui.elements.mixins.value_element import ValueElement
-
-from niceterminal.interface.base import Interface 
-from niceterminal.interface.subprocess import ShellInterface, INVOKE_COMMAND
-
 from nicegui.awaitable_response import AwaitableResponse
 
+from niceterminal.interface.base import Interface
+from niceterminal.interface.subprocess import ShellInterface, INVOKE_COMMAND
+
+@dataclass
+class TerminalConfig:
+    """Configuration settings for XTerm terminal.
+
+    Attributes:
+        rows: Number of rows in the terminal
+        cols: Number of columns in the terminal
+        term_type: Terminal type (e.g., 'xterm-256color')
+        scrollback: Number of lines to keep in scrollback buffer
+        encoding: Character encoding for terminal I/O
+    """
+    rows: int = 24
+    cols: int = 80
+    term_type: str = 'xterm-256color'
+    scrollback: int = 1000
+    encoding: str = 'utf-8'
+
+class TerminalState(Enum):
+    """Possible states of the terminal."""
+    INITIALIZING = 'initializing'
+    CONNECTED = 'connected'
+    DISCONNECTED = 'disconnected'
+    CLOSED = 'closed'
+
+@dataclass
+class TerminalMetadata:
+    """Metadata for terminal sessions.
+
+    Attributes:
+        created_at: When the terminal was created
+        connected_clients: Set of client IDs connected to this terminal
+        last_activity: Timestamp of last activity
+    """
+    created_at: datetime = field(default_factory=datetime.now)
+    connected_clients: Set[str] = field(default_factory=set)
+    last_activity: datetime = field(default_factory=datetime.now)
+
 class XTerm(
-        ValueElement,
-        DisableableElement,
-        component='xterm.js',
-        default_classes='nicegui-xtermjs'
-    ):
+            ValueElement,
+            DisableableElement,
+            component = 'xterm.js',
+            default_classes = 'nicegui-xtermjs',
+        ):
+    """XTerm.js integration for NiceGUI.
 
-    # TODO: Cargo culted code - Should this be a value/loopback?
-    VALUE_PROP = 'value'
-    LOOPBACK = None
+    This class provides a terminal emulator component that can be used in NiceGUI
+    applications. It supports both direct usage and integration with various
+    terminal interfaces.
 
-    on_close_callback = None
+    Attributes:
+        component: Name of the JavaScript component
+        default_classes: Default CSS classes for the terminal
+        config: Terminal configuration settings
+        state: Current state of the terminal
+        metadata: Terminal session metadata
+    """
+
 
     def __init__(
         self,
+        config: Optional[TerminalConfig] = None,
+        interface: Optional[Interface] = None,
         value: str = '',
-        on_change: Optional[callable] = None,
-        on_close: Optional[callable] = None,
-        interface: Interface = None,
-        rows:int = 24,
-        cols:int = 80,
+        on_change: Optional[Callable] = None,
+        on_close: Optional[Callable] = None,
         **kwargs
     ) -> None:
+        """Initialize the XTerm component.
 
-        #props = kwargs.getdefault('props', {})
-        #options = props.setdefault('options', {})
-        #options.setdefault('termType', 'xterm-256color')
-
-        super().__init__(value=value, on_value_change=on_change, **kwargs)
-        self.add_resource(Path(__file__).parent / 'lib' / 'xterm.js')
+        Args:
+            config: Terminal configuration settings
+            interface: Terminal interface implementation
+            value: Initial terminal content
+            on_change: Callback for content changes
+            on_close: Callback for terminal closure
+            **kwargs: Additional arguments passed to ValueElement
+        """
+        self.config = config or TerminalConfig()
+        self.state = TerminalState.INITIALIZING
+        self.metadata = TerminalMetadata()
+        self._interface: Optional[Interface] = None
         self.on_close_callback = on_close
 
-        self.rows = rows
-        self.cols = cols
+        super().__init__(
+            value=value,
+            on_value_change=on_change,
+           **kwargs
+        )
 
+        self.props.options = {
+                'rows': self.config.rows,
+                'cols': self.config.cols,
+                'termType': self.config.term_type,
+                'scrollback': self.config.scrollback,
+            }
+ 
+        # Add required JavaScript resources
+        self.add_resource(Path(__file__).parent / 'lib' / 'xterm.js')
+
+        # Set up auto-close for non-shared clients
         if not self.client.shared:
             background_tasks.create(
                 self._auto_close(),
@@ -62,203 +150,212 @@ class XTerm(
         if interface:
             self.connect_interface(interface)
 
-        # Check if the root route is defined
-        for route in app.routes:
-            print(route)
-        is_auto_index = '/' not in [route.path for route in app.routes]
+    def write(self, data: bytes) -> None:
+        """Write data to the terminal.
 
-        if is_auto_index:
-            print('Running in auto-index mode')
-        else:
-            print('Custom route for / is defined')
+        Args:
+            data: Raw bytes to write to the terminal
 
-        print("CLIENT:", self.client)
-        print("AUTOINDEX:", self.client.is_auto_index_client)
+        Raises:
+            TypeError: If data is not bytes
+            RuntimeError: If terminal is closed
+        """
+        if self.state == TerminalState.CLOSED:
+            raise RuntimeError("Cannot write to closed terminal")
 
-    def call_terminal_method(self, name: str, *args) -> None:
-        self.run_method("callAPIMethod", name, *args)
+        if not isinstance(data, bytes):
+            raise TypeError(f"data must be bytes, got {type(data)}")
 
-    def write(self, data:bytes) -> None:
         if core.loop is None:
+            # logger.warning("No event loop available for terminal write")
             return
-        if isinstance(data, str):
-            raise TypeError("data must be bytes")
-        serialized_data = base64.b64encode(data).decode()
-        self.run_method("write", serialized_data)
 
-    def fit(self, data:str) -> None:
-        if core.loop is None:
-            return
-        self.run_method("fit", data)
-
-    def rows(self) -> int:
-        return self.interface.rows
-
-    def cols(self) -> int:
-        return self.interface.cols
+        try:
+            serialized_data = base64.b64encode(data).decode()
+            self.run_method("write", serialized_data)
+            self.metadata.last_activity = datetime.now()
+        except Exception as e:
+            logger.error(f"Failed to write to terminal: {e}")
+            raise
 
     def set_cursor_location(self, row:int, col:int) -> AwaitableResponse:
         self.run_method("setCursorLocation", row, col)
 
-    def sync_with_frontend(self) -> None:
-        #self.backend_output = "\n".join(self.screen.display)
-        #self.call_terminal_method("write", self.backend_output)
+    def connect_interface(self, interface: Interface) -> None:
+        """Connect a terminal interface to this XTerm instance.
 
-        if core.loop is None:
-            return
+        This method sets up bidirectional communication between the XTerm
+        and the provided interface implementation.
 
-        cursor_position = self.interface.get_cursor_position()
+        Args:
+            interface: The interface to connect
 
-        data = self.interface.get_screen_display()
-        if isinstance(data, str):
-            data = data.encode()
+        Raises:
+            RuntimeError: If terminal is already closed
+        """
+        if self.state == TerminalState.CLOSED:
+            raise RuntimeError("Cannot connect interface to closed terminal")
 
-        with self:
-            serialized_data = base64.b64encode(data).decode()
-            ui.run_javascript(
-                f"runMethod({self.id}, 'refreshScreen', ['{serialized_data}']);"
-            )
-        self.set_cursor_location(*cursor_position)
+        self._interface = interface
 
-    async def _auto_close(self) -> None:
-        while self.client.id in Client.instances:
-            await asyncio.sleep(1.0)
-        if self.on_close_callback:
-            await self.on_close_callback(self)
-
-    def on_close(self, callback) -> None:
-        self.on_close_callback = callback
-
-    @property
-    def client_is_auto_index(self) -> bool:
-        return self.client.is_auto_index_client
-
-    def connect_interface(self, interface:Interface) -> None:
-        """ Connects the XTerm to an InvokeProcess object """ 
-        self.interface = interface
-
-        #######################################################################
-
-        def interface_on_read(_, data):
+        # Set up interface event handlers
+        def handle_interface_read(_, data: bytes) -> None:
+            """Handle data read from the interface."""
             if self.client.id in Client.instances:
                 self.write(data)
-        interface.on_read(interface_on_read)
 
-        def on_exit(_):
-            self.write("[Interface Exited]\n\r")
-        interface.on_exit(on_exit)
+        async def handle_interface_exit(_) -> None:
+            """Handle interface exit."""
+            self.write(b"[Interface Exited]\n\r")
+            self.state = TerminalState.DISCONNECTED
 
-        #######################################################################
+        interface.on_read(handle_interface_read)
+        interface.on_exit(handle_interface_exit)
 
-        async def client_on_render(e):
-            (data, sio_sid) = e.args
-            self.interface.term_client_metadata_update(
-                        f"{self.client.id}-{sio_sid}",
-                        {
-                            "rows": self.rows,
-                            "cols": self.cols
-                        })
-        self.on("render", client_on_render)
+        # Set up client event handlers
+        async def handle_client_render(e: Any) -> None:
+            """Handle client render events."""
+            data, sio_sid = e.args
+            client_id = f"{self.client.id}-{sio_sid}"
 
-        async def client_on_resize(e):
-            (data, sio_sid) = e.args
+            self.metadata.connected_clients.add(client_id)
+            interface.term_client_metadata_update(
+                client_id,
+                {
+                    "rows": self.config.rows,
+                    "cols": self.config.cols
+                }
+            )
+
+        async def handle_client_resize(e: Any) -> None:
+            """Handle terminal resize events."""
+            data, sio_sid = e.args
+            client_id = f"{self.client.id}-{sio_sid}"
 
             rows = data.get("rows")
             cols = data.get("cols")
             if not (rows and cols):
                 return
 
-            print(f"RESIZE {rows=}x{cols=}")
-            self.interface.term_client_metadata_update(
-                        f"{self.client.id}-{sio_sid}",
-                        {
-                            "rows": rows,
-                            "cols": cols
-                        })
-
-        self.on("resize", client_on_resize)
-
-        async def client_on_data(e):
-            (data, _) = e.args
-            if isinstance(data, str):
-                await self.interface.write(base64.b64decode(data))
-        self.on("data", client_on_data)
-
-        async def interface_on_close(self):
-            if self.interface:
-                await self.interface.shutdown()
-        self.on_close(interface_on_close)
-
-        def client_on_connect(client: Client):
-            print("CONNECTED!", client)
-            self.sync_with_frontend()
-        self.client.on_connect(client_on_connect)
-
-        def client_on_disconnect(e):
-            # We don't know who disconnected so we'll need to
-            # go through the list of clients and remove the one
-            # that disconnected
-            print(f"DISCONECTED! {e=}")
-        self.client.on_disconnect(client_on_disconnect)
-
-        async def on_mount(e):
-            (data, _) = e.args
-            if self.client_is_auto_index:
-                self.sync_with_frontend()
-            else:
-                await self.run_method("noop")
-        self.on("mount", on_mount)
-
-        #######################################################################
-
-        if not self.client.shared:
-            background_tasks.create(
-                self.interface.launch_interface(),
-                name='Invoke interface task'
+            interface.term_client_metadata_update(
+                client_id,
+                {
+                    "rows": rows,
+                    "cols": cols
+                }
             )
 
-    def __getattr__(self, name):
-        print(f"GETATTR {name}")
-        return object.__getattribute__(self, name)
+        async def handle_client_data(e: Any) -> None:
+            """Handle client data input."""
+            data, _ = e.args
+            if isinstance(data, str):
+                await interface.write(base64.b64decode(data))
+                self.metadata.last_activity = datetime.now()
 
-class ShellXTerm(
-                XTerm,
-                ValueElement,
-                DisableableElement,
-                component='xterm.js',
-                default_classes='nicegui-xtermjs'
-            ):
+        # Register event handlers
+        self.on("render", handle_client_render)
+        self.on("resize", handle_client_resize)
+        self.on("data", handle_client_data)
+
+        # Set up client connection handling
+        def handle_client_connect(client: Client) -> None:
+            """Handle client connections."""
+            logger.info(f"Client connected: {client.id}")
+            self.state = TerminalState.CONNECTED
+            self.sync_with_frontend()
+
+        def handle_client_disconnect(e: Any) -> None:
+            """Handle client disconnections."""
+            logger.info(f"Client disconnected: {e}")
+            # Remove disconnected client from metadata
+            client_id = f"{self.client.id}-{getattr(e, 'sid', '')}"
+            self.metadata.connected_clients.discard(client_id)
+
+        self.client.on_connect(handle_client_connect)
+        self.client.on_disconnect(handle_client_disconnect)
+
+        # Launch interface if not shared
+        if not self.client.shared:
+            background_tasks.create(
+                interface.launch_interface(),
+                name='Terminal interface task'
+            )
+
+    async def _auto_close(self) -> None:
+        """Auto-close handler for terminal cleanup."""
+        while self.client.id in Client.instances:
+            await asyncio.sleep(1.0)
+
+        self.state = TerminalState.CLOSED
+        if self.on_close_callback:
+            await self.on_close_callback(self)
+
+    def sync_with_frontend(self) -> None:
+        """Synchronize terminal state with frontend."""
+        if core.loop is None or not self._interface:
+            return
+
+        try:
+            # Update screen content
+            data = self._interface.get_screen_display()
+            if isinstance(data, str):
+                data = data.encode()
+
+            # Send screen update to frontend
+            serialized_data = base64.b64encode(data).decode()
+            with self:
+                ui.run_javascript(
+                    f"runMethod({self.id}, 'refreshScreen', ['{serialized_data}']);"
+                )
+
+            # Update cursor position
+            cursor_position = self._interface.get_cursor_position()
+            self.set_cursor_location(*cursor_position)
+        except Exception as e:
+            logger.error(f"Failed to sync with frontend: {e}")
+
+class ShellXTerm(XTerm):
+    """A convenient XTerm subclass preconfigured for shell interaction.
+
+    This class provides a simpler interface for creating terminal instances
+    that connect to a shell process.
+    """
 
     def __init__(
-                self,
-                invoke_command: str = INVOKE_COMMAND,
-                shutdown_command: str = None,
-                on_read: Callable = None,
-                on_exit: Callable = None,
-                cwd: str = None,
-                rows: int = 80,
-                cols: int = 24,
-                value: str = '',
-                on_change: Optional[callable] = None,
-                on_close: Optional[callable] = None,
-            ):
+        self,
+        invoke_command: str = INVOKE_COMMAND,
+        shutdown_command: str = None,
+        cwd: str = None,
+        on_read: Optional[Callable] = None,
+        on_exit: Optional[Callable] = None,
+        config: Optional[TerminalConfig] = None,
+        **kwargs
+    ) -> None:
+        """Initialize a shell-connected terminal.
+
+        Args:
+            invoke_command: Command to launch the shell
+            shutdown_command: Command to shut down the shell
+            cwd: Working directory for the shell
+            on_read: Callback for data read from shell
+            on_exit: Callback for shell exit
+            config: Terminal configuration
+            **kwargs: Additional arguments passed to XTerm
+        """
+        config = config or TerminalConfig()
 
         interface = ShellInterface(
-                            invoke_command=invoke_command,
-                            shutdown_command=shutdown_command,
-                            cwd=cwd,
-                            on_read=on_read,
-                            on_exit=on_exit,
-                            rows=rows,
-                            cols=cols,
-                    ).start()
+            invoke_command=invoke_command,
+            shutdown_command=shutdown_command,
+            cwd=cwd,
+            on_read=on_read,
+            on_exit=on_exit,
+            rows=config.rows,
+            cols=config.cols,
+        ).start()
 
         super().__init__(
             interface=interface,
-            value=value,
-            on_change=on_change,
-            on_close=on_close,
-            rows=rows,
-            cols=cols,
+            config=config,
+            **kwargs
         )
-
