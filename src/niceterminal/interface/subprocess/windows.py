@@ -62,8 +62,7 @@ class WindowsInterface(Interface):
         """Writes data to the shell."""
         if self.state != INTERFACE_STATE_STARTED:
             return
-        #self.con.write(data.decode())
-        self.process.write(data)
+        self.process.write(data.decode())
 
     @logger.catch
     async def shutdown(self):
