@@ -26,6 +26,7 @@ class PosixInterface(Interface):
         self.shutdown_command = shutdown_command
         self.cwd = cwd
         self.process = None
+        self.on_exit_handle = []
 
     @logger.catch
     async def launch_interface(self):
@@ -85,6 +86,7 @@ class PosixInterface(Interface):
     @logger.catch
     async def shutdown(self):
         """Shuts down the shell process."""
+        logger.info(f"Shutting down process {self.process.pid}")
         if self.state == INTERFACE_STATE_STARTED:
             try:
                 self.process.kill()
@@ -106,6 +108,14 @@ class PosixInterface(Interface):
             )
             await shutdown_process.wait()
         self.state = INTERFACE_STATE_SHUTDOWN
+
         await self.process.wait()
-        os.close(self.primary_fd)
-        os.close(self.subordinate_fd)
+
+        try:
+            os.close(self.primary_fd)
+        except OSError:
+            pass
+        try:
+            os.close(self.subordinate_fd)
+        except OSError:
+            pass

@@ -85,8 +85,7 @@ class PersistentInterface(Interface):
     @logger.catch
     async def shutdown(self):
         """Shuts down the interface."""
-        #await self.interface.shutdown()
-        pass
+        await self.child_interface.shutdown()
 
     def dump_screen_state(self, screen: pyte.Screen) -> str:
         """Dumps current screen state to an ANSI file with efficient style management"""

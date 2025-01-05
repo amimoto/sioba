@@ -37,7 +37,7 @@ RUN :\
         vim-nox \
         wget \
     # Install nodejs
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g npm@latest typescript --unsafe-perm=true --allow-root \
     # Install yarn

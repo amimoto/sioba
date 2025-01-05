@@ -12,12 +12,16 @@ export PATH="/home/zaber/.local/bin:$PATH"
 
 # Install `nvm` and use it to install Node.js, npm, and TypeScript
 echo "Installing NVM"
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash && \
-    . "$NVM_DIR/nvm.sh" && \
-    nvm install stable && \
-    nvm alias default stable && \
-    npm install -g typescript && \
-    npm install -g npm@latest
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+. "$NVM_DIR/nvm.sh"
+
+nvm install stable
+
+nvm alias default stable
+
+npm install -g typescript
+
+npm install -g npm@latest
 
 echo "Installing PDM"
 curl -sSL https://pdm-project.org/install-pdm.py | python3 -

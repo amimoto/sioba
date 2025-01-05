@@ -12,9 +12,8 @@ dependencies = [
     "pywinpty>=2.0.4; platform_system == 'Windows'",
     "loguru>=0.7.2",
     "rich>=13.9.4",
-    "blessed>=1.20.0",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 readme = "README.md"
 license = {text = "MIT-0"}
 
@@ -25,5 +24,12 @@ build = { includes = ["src/niceterminal"] }
 [build-system]
 requires = ["pdm-backend>=0.12"]
 build-backend = "pdm.backend"
+
+
+[project.optional-dependencies]
+cli = [ "docopt-ng>=0.9.0" ]
+
+[project.scripts]
+niceterm = "niceterminal.cli:main [cli]"
 
 
