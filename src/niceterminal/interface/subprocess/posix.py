@@ -9,6 +9,7 @@ import termios
 from typing import Callable
 
 from ..base import Interface, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
+from niceterminal.utils import default_shell
 
 from loguru import logger
 
@@ -20,13 +21,15 @@ class PosixInterface(Interface):
                  on_exit:Callable=None,
                  cwd:str=None,
                  ):
-        super().__init__(on_read, on_exit)
+        super().__init__(
+            on_read=on_read,
+            on_exit=on_exit,
+        )
         self.primary_fd, self.subordinate_fd = pty.openpty()
         self.invoke_command = invoke_command
         self.shutdown_command = shutdown_command
         self.cwd = cwd
         self.process = None
-        self.on_exit_handle = []
 
     @logger.catch
     async def launch_interface(self):
@@ -35,14 +38,17 @@ class PosixInterface(Interface):
             return
         self.state = INTERFACE_STATE_STARTED
 
+        shell = default_shell()
+        invoke_command = self.invoke_command or shell
+
         self.process = await asyncio.create_subprocess_shell(
-            self.invoke_command,
+            invoke_command,
             preexec_fn=os.setsid,
             stdin=self.subordinate_fd,
             stdout=self.subordinate_fd,
             stderr=self.subordinate_fd,
             cwd=self.cwd,
-            executable='/bin/bash',
+            executable=shell,
         )
         loop = asyncio.get_running_loop()
         loop.add_reader(self.primary_fd, self._read_loop)
@@ -80,8 +86,9 @@ class PosixInterface(Interface):
         await self.process.wait()  # Wait until the process exits
         self.state = INTERFACE_STATE_SHUTDOWN
         await self.shutdown()
-        for on_exit in self.on_exit_handle:
-            on_exit(self)
+
+        logger.debug(f"Process {self.process.pid} exited. Calling exit handlers.")
+        self.on_exit_handle()
 
     @logger.catch
     async def shutdown(self):

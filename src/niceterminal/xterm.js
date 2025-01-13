@@ -57,7 +57,9 @@ export default {
     cols() {
       return this.term.cols;
     },
-
+    focus() {
+      this.term.focus();
+    },
     noop() {
       // Do nothing
       return null;

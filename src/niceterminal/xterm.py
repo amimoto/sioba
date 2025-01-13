@@ -40,6 +40,7 @@ from nicegui.awaitable_response import AwaitableResponse
 
 from niceterminal.interface.base import Interface
 from niceterminal.interface.subprocess import ShellInterface, INVOKE_COMMAND
+from niceterminal.errors import TerminalClosedError
 
 @dataclass
 class TerminalConfig:
@@ -150,6 +151,10 @@ class XTerm(
         if interface:
             self.connect_interface(interface)
 
+    def focus(self) -> AwaitableResponse:
+        """Focus the terminal."""
+        return self.run_method("focus")
+
     def write(self, data: bytes) -> None:
         """Write data to the terminal.
 
@@ -161,7 +166,7 @@ class XTerm(
             RuntimeError: If terminal is closed
         """
         if self.state == TerminalState.CLOSED:
-            raise RuntimeError("Cannot write to closed terminal")
+            raise TerminalClosedError("Cannot write to closed terminal")
 
         if not isinstance(data, bytes):
             raise TypeError(f"data must be bytes, got {type(data)}")
@@ -194,7 +199,7 @@ class XTerm(
             RuntimeError: If terminal is already closed
         """
         if self.state == TerminalState.CLOSED:
-            raise RuntimeError("Cannot connect interface to closed terminal")
+            raise TerminalClosedError("Cannot connect interface to closed terminal")
 
         self._interface = interface
 
@@ -204,9 +209,14 @@ class XTerm(
             if self.client.id in Client.instances:
                 self.write(data)
 
-        async def handle_interface_exit(_) -> None:
+        def handle_interface_exit(_) -> None:
             """Handle interface exit."""
-            self.write(b"[Interface Exited]\n\r")
+            try:
+                self.write(b"[Interface Exited]\033[?25l\n\r")
+            # We risk triggering this exception as it won't be surprising
+            # if someone closes their tab
+            except TerminalClosedError:
+                pass
             self.state = TerminalState.DISCONNECTED
 
         interface.on_read(handle_interface_read)
@@ -303,6 +313,11 @@ class XTerm(
             # Update cursor position
             cursor_position = self._interface.get_cursor_position()
             self.set_cursor_location(*cursor_position)
+
+            # Check if interface is dead
+            if not self._interface.running():
+                self.write(b"[Interface Exited]\033[?25l\n\r")
+                self.state = TerminalState.DISCONNECTED
         except Exception as e:
             logger.error(f"Failed to sync with frontend: {e}")
 

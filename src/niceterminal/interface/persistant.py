@@ -39,6 +39,11 @@ class PersistentInterface(Interface):
         # Wrap the process's on_read with our pyte handler
         self.child_interface.on_read(self._pyte_handler)
 
+        # Wrap our own handler for exit
+        self.child_interface.on_exit(
+            lambda _: self.on_exit_handle()
+        )
+
     @logger.catch
     def _pyte_handler(self, interface:Interface, data: bytes):
         """Handler that updates the pyte screen before passing data through"""
@@ -87,7 +92,7 @@ class PersistentInterface(Interface):
         """Shuts down the interface."""
         await self.child_interface.shutdown()
 
-    def dump_screen_state(self, screen: pyte.Screen) -> str:
+    def dump_screen_state(self, screen: pyte.Screen) -> bytes:
         """Dumps current screen state to an ANSI file with efficient style management"""
         buf = "\033[0m"  # Initial reset
 
@@ -194,11 +199,10 @@ class PersistentInterface(Interface):
 
         # Reset cursor position at the end
         buf += f"\033[{screen.lines};1H"
-        return buf
+        return buf.encode()
 
-    # Additional pyte-specific methods
     @logger.catch
-    def get_screen_display(self) -> str:
+    def get_screen_display(self) -> bytes:
         """Get the current screen contents as a string"""
         return self.dump_screen_state(self.screen)
 

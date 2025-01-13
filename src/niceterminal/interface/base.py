@@ -139,8 +139,10 @@ class Interface:
     @logger.catch
     def on_exit_handle(self):
         """Callback when the shell process exits."""
+        self.state = INTERFACE_STATE_SHUTDOWN
         for on_exit in self._on_exit_callbacks:
             on_exit(self)
+
 
     def set_title(self, name:str):
         self.on_set_title_handle(name)
@@ -149,9 +151,9 @@ class Interface:
         """Sets the shell window size."""
         pass
 
-    def get_screen_display(self) -> str:
+    def get_screen_display(self) -> bytes:
         """Get the current screen contents as a string"""
-        return ''
+        return b''
 
     def get_cursor_position(self) -> tuple:
         return (0, 0)
