@@ -2,9 +2,9 @@
 NiceTerminal Web Interface
 
 Usage:
-    niceterminal [options]
-    niceterminal -h | --help
-    niceterminal --version
+    niceterm [options]
+    niceterm -h | --help
+    niceterm --version
 
 Options:
   -h --help                    Show this help.
@@ -14,6 +14,7 @@ Options:
   --app=<command>              Default application to start in new terminals [default: bash].
   --password=<pass>            Set authentication password
   --no-auth                    Disable authentication requirement. Incompatible with --password.
+  --light-mode                 Use light mode.
   --log-level=<level>          Set log level [default: INFO].
   --isolation=<level>          At what level are terminals shared: [default: global]
                                     - global: everyone
@@ -33,6 +34,8 @@ import logging
 import docopt
 import hashlib
 
+import getpass
+
 from fastapi.responses import RedirectResponse
 
 from loguru import logger
@@ -47,6 +50,10 @@ OPTS = {}
 @ui.page('/authenticate')
 @logger.catch
 async def authenticate(client : Client):
+
+    if not OPTS.get("--light-mode"):
+        dark = ui.dark_mode()
+        dark.enable()
 
     if app.storage.user.get("authenticated"):
         return RedirectResponse("/")
@@ -101,6 +108,10 @@ async def index(client : Client):
         if not app.storage.user.get("authenticated"):
             return RedirectResponse("/authenticate")
 
+    if not OPTS.get("--light-mode"):
+        dark = ui.dark_mode()
+        dark.enable()
+
     ui.page_title("Terminal")
 
     ui.add_head_html('''
@@ -110,9 +121,6 @@ async def index(client : Client):
         }
     </style>
     ''')
-
-    dark = ui.dark_mode()
-    dark.enable()
 
     logging.info(f"Isolation level is {OPTS.get('--isolation')}")
     isolation = OPTS.get("--isolation")
@@ -160,8 +168,11 @@ def main():
     # If the user has disabled authentication, we need to generate a secret
     # We'll use the host, user, and port to generate a secret that is unique to the user
     # but also consistent across restarts
+    host = OPTS.get("--host", "localhost")
+    user = getpass.getuser()
+    port = int(OPTS.get("--port", 8080))
     if OPTS.get("--no-auth"):
-        storage_secret = "{host}-{user}-{port}".format(**OPTS)
+        storage_secret = f"{host}-{user}-{port}"
 
     elif password := OPTS.get("--password"):
         # If the user has provided a password, we'll use that as the secret
@@ -188,8 +199,8 @@ def main():
 
     ui.run(
         reload=OPTS.get("--reload", reload),
-        host=OPTS.get("--host", "localhost"),
-        port=int(OPTS.get("--port", 8080)),
+        host=host,
+        port=int(port),
         storage_secret=storage_secret,
     )
 
