@@ -36,6 +36,27 @@ RUN :\
         telnet \
         vim-nox \
         wget \
+        unzip \
+        # For selenium testing
+        chromium-driver \
+        libnss3 \
+        libatk1.0-0t64 \
+        libatk-bridge2.0-0t64 \
+        libcups2t64 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxfixes3 \
+        libxrandr2 \
+        libgbm1 \
+        libxkbcommon0 \
+        libxcb1 \
+        libpango-1.0-0 \
+        libcairo2 \
+        libasound2t64 \
+    # Install chromium
+    # Pulled from here: https://vikyd.github.io/download-chromium-history-version/#/
+    && wget "https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F1231300%2Fchrome-linux.zip?generation=1701355787197325&alt=media" -O /tmp/chromium.zip \
+    && unzip /tmp/chromium.zip -d /opt \
     # Install nodejs
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \

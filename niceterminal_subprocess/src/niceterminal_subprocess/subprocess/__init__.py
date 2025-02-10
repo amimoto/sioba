@@ -1,6 +1,6 @@
 from typing import Callable
 
-from ..persistant import PersistentInterface
+from niceterminal.interface.persistant import PersistentInterface
 
 from loguru import logger
 
@@ -21,7 +21,7 @@ class ShellInterface(PersistentInterface):
                 invoke_command: str = INVOKE_COMMAND,
                 shutdown_command: str = None,
                 on_read: Callable = None,
-                on_exit: Callable = None,
+                on_shutdown: Callable = None,
                 on_set_title: Callable = None,
                 cwd: str = None,
                 cols: int = 80,
@@ -34,8 +34,9 @@ class ShellInterface(PersistentInterface):
                             cwd=cwd
                         ),
                         on_read=on_read,
-                        on_exit=on_exit,
+                        on_shutdown=on_shutdown,
                         on_set_title=on_set_title,
                         cols=cols,
                         rows=rows,
                     )
+

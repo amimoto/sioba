@@ -39,7 +39,7 @@ from nicegui.elements.mixins.value_element import ValueElement
 from nicegui.awaitable_response import AwaitableResponse
 
 from niceterminal.interface.base import Interface
-from niceterminal.interface.subprocess import ShellInterface, INVOKE_COMMAND
+# from niceterminal.interface.subprocess import ShellInterface, INVOKE_COMMAND
 from niceterminal.errors import TerminalClosedError
 
 @dataclass
@@ -83,7 +83,7 @@ class XTerm(
             ValueElement,
             DisableableElement,
             component = 'xterm.js',
-            default_classes = 'nicegui-xtermjs',
+            default_classes = 'niceterminal-xtermjs',
         ):
     """XTerm.js integration for NiceGUI.
 
@@ -220,7 +220,7 @@ class XTerm(
             self.state = TerminalState.DISCONNECTED
 
         interface.on_read(handle_interface_read)
-        interface.on_exit(handle_interface_exit)
+        interface.on_shutdown(handle_interface_exit)
 
         # Set up client event handlers
         async def handle_client_render(e: Any) -> None:
@@ -320,49 +320,3 @@ class XTerm(
                 self.state = TerminalState.DISCONNECTED
         except Exception as e:
             logger.error(f"Failed to sync with frontend: {e}")
-
-class ShellXTerm(XTerm):
-    """A convenient XTerm subclass preconfigured for shell interaction.
-
-    This class provides a simpler interface for creating terminal instances
-    that connect to a shell process.
-    """
-
-    def __init__(
-        self,
-        invoke_command: str = INVOKE_COMMAND,
-        shutdown_command: str = None,
-        cwd: str = None,
-        on_read: Optional[Callable] = None,
-        on_exit: Optional[Callable] = None,
-        config: Optional[TerminalConfig] = None,
-        **kwargs
-    ) -> None:
-        """Initialize a shell-connected terminal.
-
-        Args:
-            invoke_command: Command to launch the shell
-            shutdown_command: Command to shut down the shell
-            cwd: Working directory for the shell
-            on_read: Callback for data read from shell
-            on_exit: Callback for shell exit
-            config: Terminal configuration
-            **kwargs: Additional arguments passed to XTerm
-        """
-        config = config or TerminalConfig()
-
-        interface = ShellInterface(
-            invoke_command=invoke_command,
-            shutdown_command=shutdown_command,
-            cwd=cwd,
-            on_read=on_read,
-            on_exit=on_exit,
-            rows=config.rows,
-            cols=config.cols,
-        ).start()
-
-        super().__init__(
-            interface=interface,
-            config=config,
-            **kwargs
-        )

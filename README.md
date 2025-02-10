@@ -93,7 +93,7 @@ from niceterminal.xterm import XTerm
 class EchoInterface(Interface):
     async def write(self, data: bytes):
         if data:
-            self.on_read_handle(data)
+            self.read(data)
 
     @logger.catch
     async def launch_interface(self):
@@ -144,7 +144,7 @@ from niceterminal.interface import Interface
 **Key Methods**:
 - **`write(self, data: bytes) -> None`**
   - Invoked when the user types or sends data from the terminal.
-- **`on_read_handle(self, data: bytes) -> None`**
+- **`read(self, data: bytes) -> None`**
   - Sends data to be rendered in the terminal.
 - **`close(self) -> None`**
   - Close/cleanup the underlying connection or process.
@@ -204,7 +204,7 @@ class SerialPortInterface(Interface):
             data = self.ser.read(1024)  # Non-blocking read
             if data:
                 # Send any received data to the terminal
-                self.on_read_handle(data)
+                self.read(data)
 
     async def write(self, data: bytes):
         if not self.ser:

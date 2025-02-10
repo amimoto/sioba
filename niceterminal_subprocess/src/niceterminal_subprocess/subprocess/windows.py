@@ -13,10 +13,10 @@ class WindowsInterface(Interface):
                  invoke_command: str,
                  shutdown_command: str = None,
                  on_read: Callable = None,
-                 on_exit: Callable = None,
+                 on_shutdown: Callable = None,
                  cwd: str = None,
                  ):
-        super().__init__(on_read=on_read, on_exit=on_exit)
+        super().__init__(on_read=on_read, on_shutdown=on_shutdown)
         self.invoke_command = invoke_command
         self.shutdown_command = shutdown_command
         self.cwd = cwd
@@ -41,7 +41,7 @@ class WindowsInterface(Interface):
                             ).start()
 
         # Start a task to monitor process exit
-        asyncio.create_task(self._on_exit_handlers())
+        asyncio.create_task(self._on_shutdown_handlers())
 
     @logger.catch
     def set_size(self, rows, cols, xpix=0, ypix=0):
@@ -55,7 +55,7 @@ class WindowsInterface(Interface):
         """Blocking read loop in a separate thread."""
         while self.process.isalive():
             data = self.process.read()
-            self.on_read_handle(data.encode())
+            self.read(data.encode())
 
     @logger.catch
     async def write(self, data: bytes):
@@ -65,7 +65,7 @@ class WindowsInterface(Interface):
         self.process.write(data.decode())
 
     @logger.catch
-    async def shutdown(self):
+    def shutdown(self):
         """Shuts down the shell process."""
         if self.state == INTERFACE_STATE_STARTED:
             try:
@@ -75,12 +75,12 @@ class WindowsInterface(Interface):
         self.state = INTERFACE_STATE_SHUTDOWN
 
     @logger.catch
-    async def _on_exit_handlers(self):
+    async def _on_shutdown_handlers(self):
         """Monitors process exit and handles cleanup."""
         try:
             await asyncio.to_thread(self.con.wait)  # Wait for process exit
             self.state = INTERFACE_STATE_SHUTDOWN
             await self.shutdown()
-            self._on_exit_handlers()
+            self._on_shutdown_handlers()
         except Exception as e:
             logger.wraning(f"Error monitoring process exit: {e}")

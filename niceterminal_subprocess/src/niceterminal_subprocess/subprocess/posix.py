@@ -15,15 +15,17 @@ from loguru import logger
 
 class PosixInterface(Interface):
     def __init__(self,
-                 invoke_command:str,
-                 shutdown_command:str=None,
-                 on_read:Callable=None,
-                 on_exit:Callable=None,
+                 invoke_command: str,
+                 shutdown_command: str = None,
+                 on_write: Callable = None,
+                 on_read: Callable = None,
+                 on_shutdown: Callable = None,
                  cwd:str=None,
                  ):
         super().__init__(
-            on_read=on_read,
-            on_exit=on_exit,
+            on_write = on_write,
+            on_read = on_read,
+            on_shutdown = on_shutdown,
         )
         self.primary_fd, self.subordinate_fd = pty.openpty()
         self.invoke_command = invoke_command
@@ -61,7 +63,7 @@ class PosixInterface(Interface):
     def _read_loop(self):
         """Callback when data is available to read from the shell."""
         if data := os.read(self.primary_fd, 10240):
-            self.on_read_handle(data)
+            self.read(data)
 
     @logger.catch
     async def write(self, data: bytes):
@@ -87,11 +89,8 @@ class PosixInterface(Interface):
         self.state = INTERFACE_STATE_SHUTDOWN
         await self.shutdown()
 
-        logger.debug(f"Process {self.process.pid} exited. Calling exit handlers.")
-        self.on_exit_handle()
-
     @logger.catch
-    async def shutdown(self):
+    def shutdown(self):
         """Shuts down the shell process."""
         logger.info(f"Shutting down process {self.process.pid}")
         if self.state == INTERFACE_STATE_STARTED:
@@ -103,26 +102,35 @@ class PosixInterface(Interface):
                 pass
         loop = asyncio.get_running_loop()
         loop.remove_reader(self.primary_fd)
-        if self.shutdown_command:
-            shutdown_process = await asyncio.create_subprocess_shell(
-                self.shutdown_command,
-                preexec_fn=os.setsid,
-                stdin=self.subordinate_fd,
-                stdout=self.subordinate_fd,
-                stderr=self.subordinate_fd,
-                cwd=self.cwd,
-                executable='/bin/bash',
-            )
-            await shutdown_process.wait()
-        self.state = INTERFACE_STATE_SHUTDOWN
 
-        await self.process.wait()
+        def _shutdown():
+            if self.shutdown_command:
+                shutdown_process = await asyncio.create_subprocess_shell(
+                    self.shutdown_command,
+                    preexec_fn=os.setsid,
+                    stdin=self.subordinate_fd,
+                    stdout=self.subordinate_fd,
+                    stderr=self.subordinate_fd,
+                    cwd=self.cwd,
+                    executable='/bin/bash',
+                )
+                await shutdown_process.wait()
+            self.state = INTERFACE_STATE_SHUTDOWN
 
-        try:
-            os.close(self.primary_fd)
-        except OSError:
-            pass
-        try:
-            os.close(self.subordinate_fd)
-        except OSError:
-            pass
+            await self.process.wait()
+
+            try:
+                os.close(self.primary_fd)
+            except OSError:
+                pass
+            try:
+                os.close(self.subordinate_fd)
+            except OSError:
+                pass
+
+            logger.debug(f"Process {self.process.pid} exited. Calling exit handlers.")
+            self.shutdown()
+
+            await super().shutdown()
+
+        loop.run_until_complete(_shutdown())
