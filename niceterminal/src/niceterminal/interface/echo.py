@@ -4,6 +4,6 @@ from niceterminal.interface.base import Interface, \
 from loguru import logger
 
 class EchoInterface(Interface):
-    async def write(self, data: bytes):
+    async def receive(self, data: bytes):
         if data:
-            self.read(data)
+            self.send(data)

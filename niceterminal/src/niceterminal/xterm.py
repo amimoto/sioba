@@ -203,8 +203,10 @@ class XTerm(
 
         self._interface = interface
 
+        interface.start()
+
         # Set up interface event handlers
-        def handle_interface_read(_, data: bytes) -> None:
+        def handle_interface_send(_, data: bytes) -> None:
             """Handle data read from the interface."""
             if self.client.id in Client.instances:
                 self.write(data)
@@ -219,7 +221,7 @@ class XTerm(
                 pass
             self.state = TerminalState.DISCONNECTED
 
-        interface.on_read(handle_interface_read)
+        interface.on_send(handle_interface_send)
         interface.on_shutdown(handle_interface_exit)
 
         # Set up client event handlers
@@ -251,7 +253,7 @@ class XTerm(
             """Handle client data input."""
             data, _ = e.args
             if isinstance(data, str):
-                await interface.write(base64.b64decode(data))
+                await interface.receive(base64.b64decode(data))
                 self.metadata.last_activity = datetime.now()
 
         # Register event handlers

@@ -16,8 +16,8 @@ INTERFACE_LOOP = None
 
 class Interface:
     def __init__(self,
-                 on_read: Callable = None,
-                 on_write: Callable = None,
+                 on_receive: Callable = None,
+                 on_send: Callable = None,
                  on_shutdown: Callable = None,
                  on_set_title: Callable = None,
                  ):
@@ -25,15 +25,15 @@ class Interface:
         self.id = str(uuid.uuid4())
         self.title = ""
 
-        self._on_read_callbacks = set()
-        self._on_write_callbacks = set()
+        self._on_receive_callbacks = set()
+        self._on_send_callbacks = set()
         self._on_shutdown_callbacks = set()
         self._on_set_title_callbacks = set()
         self.state = INTERFACE_STATE_INITIALIZED
-        if on_read:
-            self.on_read(on_read)
-        if on_write:
-            self.on_write(on_write)
+        if on_receive:
+            self.on_receive(on_receive)
+        if on_send:
+            self.on_send(on_send)
         if on_shutdown:
             self.on_shutdown(on_shutdown)
         if on_set_title:
@@ -93,10 +93,13 @@ class Interface:
         return self
 
     async def launch_interface(self):
-        """Starts the shell process asynchronously."""
+        """ Starts the shell process asynchronously.
+            Returns a true value if the interface requires launching
+        """
         if self.state != INTERFACE_STATE_INITIALIZED:
             return
         self.state = INTERFACE_STATE_STARTED
+        return True
 
     @logger.catch
     def shutdown(self):
@@ -111,14 +114,14 @@ class Interface:
     # EVENT HOOK SETUP
 
     @logger.catch
-    def on_write(self, on_write: Callable):
+    def on_send(self, on_send: Callable):
         """Add a callback for when data is received"""
-        self._on_write_callbacks.add(on_write)
+        self._on_send_callbacks.add(on_send)
 
     @logger.catch
-    def on_read(self, on_read: Callable):
+    def on_receive(self, on_receive: Callable):
         """Add a callback for when data is received"""
-        self._on_read_callbacks.add(on_read)
+        self._on_receive_callbacks.add(on_receive)
 
     @logger.catch
     def on_set_title(self, on_set_title: Callable):
@@ -139,22 +142,34 @@ class Interface:
 
     # IO
 
-    async def write(self, data: bytes):
-        """Callback when data is available to write from the shell."""
+    async def send(self, data: bytes):
+        """Sends data (in bytes) to the xterm"""
+        print(f">>>>>>>>>>>>>>>>>>>>>>>>>>> {data}")
         if self.state != INTERFACE_STATE_STARTED:
+            print("notsrated")
             raise InterfaceNotStarted()
 
-        if data:
-            for on_write in self._on_write_callbacks:
-                on_write(self, data)
+        print(f"SENDING: {data}")
+        # Don't bother if we don't have data
+        if not data:
+            return
+
+        # Dispatch to all listeners
+        for on_send in self._on_send_callbacks:
+            on_send(self, data)
 
     @logger.catch
-    def read(self, data: bytes):
-        """Recieves data from IO source Callback when data is available to read from the shell.
+    async def receive(self, data: bytes):
+        """Recieves data from the xterm as a sequence of bytes.
         """
-        if data:
-            for on_read in self._on_read_callbacks:
-                on_read(self, data)
+
+        # Don't bother if we don't have data
+        if not data:
+            return
+
+        # Dispatch to all listeners
+        for on_receive in self._on_receive_callbacks:
+            on_receive(self, data)
 
     # CONTROLS
 
@@ -167,7 +182,7 @@ class Interface:
     def set_title(self, name:str):
         self.on_set_title_handle(name)
 
-    def set_size(self, rows, cols, xpix=0, ypix=0):
+    def set_size(self, rows: int, cols: int, xpix: int=0, ypix: int=0):
         """Sets the shell window size."""
         pass
 

@@ -24,20 +24,20 @@ class PersistentInterface(Interface):
 
     def __init__(self,
                  child_interface: Interface,
-                 on_read: Callable = None,
+                 on_receive: Callable = None,
                  on_shutdown: Callable = None,
                  on_set_title: Callable = None,
                  cols: int = 80,
                  rows: int = 24) -> None:
         self.child_interface = child_interface
-        super().__init__(on_read=on_read, on_shutdown=on_shutdown, on_set_title=on_set_title)
+        super().__init__(on_receive=on_receive, on_shutdown=on_shutdown, on_set_title=on_set_title)
 
         # Initialize pyte screen and stream
         self.screen = EventsScreen(cols, rows, self.on_set_title_handle)
         self.stream = pyte.Stream(self.screen)
 
-        # Wrap the process's on_read with our pyte handler
-        self.child_interface.on_read(self._pyte_handler)
+        # Wrap the process's on_receive with our pyte handler
+        self.child_interface.on_receive(self._pyte_handler)
 
         # Wrap our own handler for exit
         self.child_interface.on_shutdown(
@@ -64,9 +64,9 @@ class PersistentInterface(Interface):
 
     # Delegate all InvokeProcess methods to the wrapped process
     @logger.catch
-    def on_read(self, on_read: Callable):
+    def on_receive(self, on_receive: Callable):
         """Add a callback for when data is received"""
-        self.child_interface.on_read(on_read)
+        self.child_interface.on_receive(on_receive)
 
     @logger.catch
     async def launch_interface(self):
@@ -77,9 +77,9 @@ class PersistentInterface(Interface):
             logger.error(f"Error launching process: {e}")
 
     @logger.catch
-    async def write(self, data: bytes):
+    async def send(self, data: bytes):
         """Writes data to the shell."""
-        await self.child_interface.write(data)
+        await self.child_interface.send(data)
 
     @logger.catch
     def set_size(self, rows, cols, xpix=0, ypix=0):

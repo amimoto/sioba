@@ -24,7 +24,7 @@ class ShellXTerm(XTerm):
         invoke_command: str = INVOKE_COMMAND,
         shutdown_command: str = None,
         cwd: str = None,
-        on_read: Optional[Callable] = None,
+        on_receive: Optional[Callable] = None,
         on_shutdown: Optional[Callable] = None,
         config: Optional[TerminalConfig] = None,
         **kwargs
@@ -35,7 +35,7 @@ class ShellXTerm(XTerm):
             invoke_command: Command to launch the shell
             shutdown_command: Command to shut down the shell
             cwd: Working directory for the shell
-            on_read: Callback for data read from shell
+            on_receive: Callback for data read from shell
             on_shutdown: Callback for shell exit
             config: Terminal configuration
             **kwargs: Additional arguments passed to XTerm
@@ -46,7 +46,7 @@ class ShellXTerm(XTerm):
             invoke_command=invoke_command,
             shutdown_command=shutdown_command,
             cwd=cwd,
-            on_read=on_read,
+            on_receive=on_receive,
             on_shutdown=on_shutdown,
             rows=config.rows,
             cols=config.cols,

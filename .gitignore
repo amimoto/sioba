@@ -350,3 +350,6 @@ Thumbs.db
 
 # Since this is a library not an application
 pdm.lock
+
+# For testing ideas but shouldn't be in the main repo
+experiments

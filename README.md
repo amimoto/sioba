@@ -91,16 +91,8 @@ from nicegui import ui
 from niceterminal.xterm import XTerm
 
 class EchoInterface(Interface):
-    async def write(self, data: bytes):
-        if data:
-            self.read(data)
-
-    @logger.catch
-    async def launch_interface(self):
-        """Starts the shell process asynchronously."""
-        if self.state != INTERFACE_STATE_INITIALIZED:
-            return
-        self.state = INTERFACE_STATE_STARTED
+    async def receive(self, data: bytes):
+        await self.send(data)
 
 # Instantiate our custom interface for a specific echo device
 echo_interface = EchoInterface()
