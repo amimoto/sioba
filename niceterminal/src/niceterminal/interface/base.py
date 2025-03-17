@@ -25,6 +25,9 @@ class Interface:
         self.id = str(uuid.uuid4())
         self.title = ""
 
+        self.scrollback_buffer = b""
+        self.scrollback_buffer_size = 100000
+
         self._on_receive_callbacks = set()
         self._on_send_callbacks = set()
         self._on_shutdown_callbacks = set()
@@ -108,8 +111,11 @@ class Interface:
         for on_shutdown in self._on_shutdown_callbacks:
             on_shutdown(self)
 
-    def running(self) -> bool:
+    def is_running(self) -> bool:
         return self.state == INTERFACE_STATE_STARTED
+
+    def is_shutdown(self) -> bool:
+        return self.state == INTERFACE_STATE_SHUTDOWN
 
     # EVENT HOOK SETUP
 
@@ -144,15 +150,15 @@ class Interface:
 
     async def send(self, data: bytes):
         """Sends data (in bytes) to the xterm"""
-        print(f">>>>>>>>>>>>>>>>>>>>>>>>>>> {data}")
         if self.state != INTERFACE_STATE_STARTED:
-            print("notsrated")
-            raise InterfaceNotStarted()
+            raise InterfaceNotStarted(f"Unable to send data {repr(data)}, interface not started")
 
-        print(f"SENDING: {data}")
         # Don't bother if we don't have data
         if not data:
             return
+
+        # Add to the scrollback buffer
+        self.scrollback_buffer += data
 
         # Dispatch to all listeners
         for on_send in self._on_send_callbacks:
@@ -188,7 +194,7 @@ class Interface:
 
     def get_screen_display(self) -> bytes:
         """Get the current screen contents as a string"""
-        return b''
+        return self.scrollback_buffer
 
     def get_cursor_position(self) -> tuple:
         return (0, 0)

@@ -41,7 +41,7 @@ class PersistentInterface(Interface):
 
         # Wrap our own handler for exit
         self.child_interface.on_shutdown(
-            lambda _: self.on_shutdown()
+            self.on_shutdown
         )
 
     @logger.catch
@@ -75,6 +75,7 @@ class PersistentInterface(Interface):
             await self.child_interface.launch_interface()
         except Exception as e:
             logger.error(f"Error launching process: {e}")
+            raise
 
     @logger.catch
     async def send(self, data: bytes):
@@ -212,9 +213,14 @@ class PersistentInterface(Interface):
         return (self.screen.cursor.y, self.screen.cursor.x)
 
     @logger.catch
-    def running(self) -> bool:
+    def is_running(self) -> bool:
         """Check if the process is running"""
-        return self.child_interface.running()
+        return self.child_interface.is_running()
+
+    @logger.catch
+    def is_shutdown(self) -> bool:
+        """Check if the process is running"""
+        return self.child_interface.is_shutdown()
 
     @logger.catch
     def __getattr__(self, name):

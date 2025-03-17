@@ -203,8 +203,6 @@ class XTerm(
 
         self._interface = interface
 
-        interface.start()
-
         # Set up interface event handlers
         def handle_interface_send(_, data: bytes) -> None:
             """Handle data read from the interface."""
@@ -251,15 +249,22 @@ class XTerm(
 
         async def handle_client_data(e: Any) -> None:
             """Handle client data input."""
+            print(f"input: {e} / {e.args}")
             data, _ = e.args
             if isinstance(data, str):
                 await interface.receive(base64.b64decode(data))
                 self.metadata.last_activity = datetime.now()
 
+        async def handle_client_mount(e: Any) -> None:
+            """Invoked when a client mounts the terminal."""
+            data, sio_sid = e.args
+            self._interface.start()
+
         # Register event handlers
         self.on("render", handle_client_render)
         self.on("resize", handle_client_resize)
         self.on("data", handle_client_data)
+        self.on("mount", handle_client_mount)
 
         # Set up client connection handling
         def handle_client_connect(client: Client) -> None:
@@ -317,7 +322,7 @@ class XTerm(
             self.set_cursor_location(*cursor_position)
 
             # Check if interface is dead
-            if not self._interface.running():
+            if self._interface.is_shutdown():
                 self.write(b"[Interface Exited]\033[?25l\n\r")
                 self.state = TerminalState.DISCONNECTED
         except Exception as e:

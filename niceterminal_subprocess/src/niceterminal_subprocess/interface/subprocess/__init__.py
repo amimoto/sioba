@@ -1,6 +1,6 @@
 from typing import Callable
 
-from niceterminal.interface.persistant import PersistentInterface
+from niceterminal.interface.persistent import PersistentInterface
 
 from loguru import logger
 
