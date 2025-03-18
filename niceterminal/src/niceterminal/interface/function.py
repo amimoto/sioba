@@ -7,7 +7,7 @@ from io import StringIO
 from typing import Callable
 
 from .base import Interface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED
-from .persistent import PersistentInterface
+from .persistent import PersistenceMixin
 
 from ..errors import InterfaceNotStarted
 
@@ -34,7 +34,12 @@ class FunctionInterface(Interface):
                  on_set_title: Callable = None,
                  default_capture_state: CaptureMode = CaptureMode.ECHO,
                  ):
-        super().__init__(on_receive=on_receive, on_send=on_send, on_shutdown=on_shutdown, on_set_title=on_set_title)
+        super().__init__(
+            on_receive=on_receive,
+            on_send=on_send,
+            on_shutdown=on_shutdown,
+            on_set_title=on_set_title
+        )
         self.function = function
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
@@ -135,7 +140,6 @@ class FunctionInterface(Interface):
         if self.state != INTERFACE_STATE_STARTED:
             raise InterfaceNotStarted("Unable to get input, interface not started")
 
-        print("Input called")
         # Clear any previous input
         self.input_buffer = b""
         self.input_ready.clear()
@@ -146,7 +150,6 @@ class FunctionInterface(Interface):
             self.print(prompt, end="")
 
         # Wait for input to be ready (the event will be set in receive())
-        print("Waiting for input")
         self.input_ready.wait()
 
         # Reset the capture mode
@@ -211,12 +214,12 @@ class FunctionInterface(Interface):
 
         return b""
 
-    async def receive(self, data: bytes):
+    async def receive(self, data: bytes) -> None:
         """Handle received data from the terminal"""
+
         if not data:
             return
 
-        print(f"Received data: {data}")
         # Call parent's receive to trigger callbacks
         for on_receive in self._on_receive_callbacks:
             on_receive(self, data)
@@ -237,27 +240,5 @@ class FunctionInterface(Interface):
             logger.warn(f"Error processing input: {e}")
             await self.send(f"\r\nError processing input: {str(e)}\r\n".encode())
 
-class PersistentFunctionInterface(PersistentInterface):
-    @logger.catch
-    def __init__(
-                self,
-                function: Callable,
-                on_receive: Callable = None,
-                on_send: Callable = None,
-                on_shutdown: Callable = None,
-                on_set_title: Callable = None,
-                default_capture_state: CaptureMode = CaptureMode.ECHO,
-                cols: int = 80,
-                rows: int = 24,
-            ):
-        super().__init__(
-                        FunctionInterface(
-                            function=function,
-                            default_capture_state=default_capture_state,
-                        ),
-                        on_receive=on_receive,
-                        on_shutdown=on_shutdown,
-                        on_set_title=on_set_title,
-                        cols=cols,
-                        rows=rows,
-                    )
+class PersistentFunctionInterface(PersistenceMixin, FunctionInterface):
+    pass

@@ -249,7 +249,6 @@ class XTerm(
 
         async def handle_client_data(e: Any) -> None:
             """Handle client data input."""
-            print(f"input: {e} / {e.args}")
             data, _ = e.args
             if isinstance(data, str):
                 await interface.receive(base64.b64decode(data))
@@ -257,8 +256,15 @@ class XTerm(
 
         async def handle_client_mount(e: Any) -> None:
             """Invoked when a client mounts the terminal."""
-            data, sio_sid = e.args
             self._interface.start()
+
+            # Launch interface if not shared
+            if not self.client.shared:
+                background_tasks.create(
+                    self._interface.launch_interface(),
+                    name='Terminal interface task'
+                )
+
 
         # Register event handlers
         self.on("render", handle_client_render)
@@ -283,13 +289,6 @@ class XTerm(
         self.client.on_connect(handle_client_connect)
         self.client.on_disconnect(handle_client_disconnect)
 
-        # Launch interface if not shared
-        if not self.client.shared:
-            background_tasks.create(
-                interface.launch_interface(),
-                name='Terminal interface task'
-            )
-
     async def _auto_close(self) -> None:
         """Auto-close handler for terminal cleanup."""
         while self.client.id in Client.instances:
@@ -301,12 +300,15 @@ class XTerm(
 
     def sync_with_frontend(self) -> None:
         """Synchronize terminal state with frontend."""
+        print("sync_with_frontend")
         if core.loop is None or not self._interface:
+            logger.warning("No event loop available for terminal sync")
             return
 
         try:
             # Update screen content
             data = self._interface.get_screen_display()
+            print(f"!! get_screen_display called {data}")
             if isinstance(data, str):
                 data = data.encode()
 

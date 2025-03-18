@@ -20,7 +20,8 @@ class Interface:
                  on_send: Callable = None,
                  on_shutdown: Callable = None,
                  on_set_title: Callable = None,
-                 ):
+                 cols: int = 80,
+                 rows: int = 24) -> None:
 
         self.id = str(uuid.uuid4())
         self.title = ""
@@ -45,6 +46,9 @@ class Interface:
         # Holds infomation on each terminial client
         # Things such as rows, cols
         self.term_clients = {}
+
+        self.cols = cols
+        self.rows = rows
 
         # Now do the subclass specific initialization
         self.init()
@@ -159,6 +163,7 @@ class Interface:
 
         # Add to the scrollback buffer
         self.scrollback_buffer += data
+        # FIXME: handle the buffer length
 
         # Dispatch to all listeners
         for on_send in self._on_send_callbacks:
@@ -168,7 +173,6 @@ class Interface:
     async def receive(self, data: bytes):
         """Recieves data from the xterm as a sequence of bytes.
         """
-
         # Don't bother if we don't have data
         if not data:
             return
@@ -178,12 +182,6 @@ class Interface:
             on_receive(self, data)
 
     # CONTROLS
-
-    def rows(self) -> int:
-        return self.rows
-
-    def cols(self) -> int:
-        return self.cols
 
     def set_title(self, name:str):
         self.on_set_title_handle(name)
