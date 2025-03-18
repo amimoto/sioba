@@ -6,7 +6,7 @@ from io import StringIO
 
 from typing import Callable
 
-from .base import Interface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED
+from .base import Interface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_SHUTDOWN
 from .persistent import PersistenceMixin
 
 from ..errors import InterfaceNotStarted
@@ -72,6 +72,7 @@ class FunctionInterface(Interface):
 
         # Run the wrapped function in a separate thread
         self.executor.submit(self._run_function)
+        concurrent.futures.thread._threads_queues.clear()
 
         return True
 
@@ -123,6 +124,8 @@ class FunctionInterface(Interface):
         """Print text to the terminal"""
         if self.state != INTERFACE_STATE_STARTED:
             raise InterfaceNotStarted("Unable to print, interface not started")
+        if self.state == INTERFACE_STATE_SHUTDOWN:
+            raise InterfaceNotStarted("Unable to print, interface is shut down")
 
         # Use the python string handling to format the text
         s = StringIO()
@@ -139,6 +142,8 @@ class FunctionInterface(Interface):
         """Get input from the terminal"""
         if self.state != INTERFACE_STATE_STARTED:
             raise InterfaceNotStarted("Unable to get input, interface not started")
+        if self.state == INTERFACE_STATE_SHUTDOWN:
+            raise InterfaceNotStarted("Unable to get input, interface is shut down")
 
         # Clear any previous input
         self.input_buffer = b""
@@ -162,6 +167,8 @@ class FunctionInterface(Interface):
         """Get password input (doesn't echo) from the terminal"""
         if self.state != INTERFACE_STATE_STARTED:
             raise InterfaceNotStarted("Unable to get password, interface not started")
+        if self.state == INTERFACE_STATE_SHUTDOWN:
+            raise InterfaceNotStarted("Unable to get password, interface is shut down")
 
         # Clear any previous input
         self.input_buffer = b""
