@@ -103,7 +103,7 @@ class PosixInterface(Interface):
         loop = asyncio.get_running_loop()
         loop.remove_reader(self.primary_fd)
 
-        def _shutdown():
+        async def _shutdown():
             if self.shutdown_command:
                 shutdown_process = await asyncio.create_subprocess_shell(
                     self.shutdown_command,

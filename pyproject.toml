@@ -6,6 +6,7 @@ dev = [
     # Local libraries
     "-e file:///${PROJECT_ROOT}/niceterminal",
     "-e file:///${PROJECT_ROOT}/niceterminal_subprocess",
+    "-e file:///${PROJECT_ROOT}/niceterminal_socket",
 
     # Testing dependencies for the development environment
     "pytest>=8.3.4",

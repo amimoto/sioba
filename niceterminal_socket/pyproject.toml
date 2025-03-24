@@ -1,15 +1,14 @@
 [project]
-name = "niceterminal_subprocess"
-version = "0.2.20250323"
-description = "Provides shell terminals for niceterminal, a library for building terminal applications with NiceGUI and rich terminal features."
+name = "niceterminal_socket"
+version = "0.2.20250319"
+description = "Provides telnet/ssl socket interfaces for niceterminal, a library for building terminal applications with NiceGUI and rich terminal features."
 authors = [
     { name = "Aki Mimoto", email = "aki@bako.ca" }
 ]
 dependencies = [
     "nicegui>=2.5.0",
     "niceterminal>=0.2.20250209",
-    "loguru>=0.7.2",
-    "pywinpty>=2.0.4; sys_platform == 'win32'",
+    "loguru>=0.7.2"
 ]
 requires-python = ">=3.9"
 license = { text = "MIT-0" }
@@ -46,6 +45,4 @@ test = [
     "pytest-asyncio>=0.25.3",
     "selenium>=4.28.1"
 ]
-windows = [
-    "winpty>=0.4.3"
-]
+

@@ -1,5 +1,6 @@
-from niceterminal import XTerm, TerminalConfig
-from niceterminal_subprocess.subprocess import ShellInterface, INVOKE_COMMAND
+from niceterminal.xterm import XTerm, TerminalConfig
+from niceterminal_subprocess.interface import ShellInterface, INVOKE_COMMAND
+from typing import Callable, Optional
 """
 Example:
     Basic usage with shell interface:
@@ -24,7 +25,7 @@ class ShellXTerm(XTerm):
         invoke_command: str = INVOKE_COMMAND,
         shutdown_command: str = None,
         cwd: str = None,
-        on_receive: Optional[Callable] = None,
+        on_receive_from_xterm: Optional[Callable] = None,
         on_shutdown: Optional[Callable] = None,
         config: Optional[TerminalConfig] = None,
         **kwargs
@@ -46,7 +47,7 @@ class ShellXTerm(XTerm):
             invoke_command=invoke_command,
             shutdown_command=shutdown_command,
             cwd=cwd,
-            on_receive=on_receive,
+            on_receive_from_xterm=on_receive_from_xterm,
             on_shutdown=on_shutdown,
             rows=config.rows,
             cols=config.cols,

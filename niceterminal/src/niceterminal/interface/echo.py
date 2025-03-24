@@ -1,9 +1,8 @@
-from niceterminal.interface.base import Interface, \
-                    INTERFACE_STATE_STARTED, \
-                    INTERFACE_STATE_INITIALIZED
+from niceterminal.interface.base import Interface
+
 from loguru import logger
 
 class EchoInterface(Interface):
-    async def receive(self, data: bytes):
-        if data:
-            self.send(data)
+    @logger.catch
+    async def receive_from_xterm(self, data: bytes):
+        await self.send_to_xterm(data)

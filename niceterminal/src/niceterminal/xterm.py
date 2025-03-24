@@ -102,8 +102,8 @@ class XTerm(
 
     def __init__(
         self,
-        config: Optional[TerminalConfig] = None,
         interface: Optional[Interface] = None,
+        config: Optional[TerminalConfig] = None,
         value: str = '',
         on_change: Optional[Callable] = None,
         on_close: Optional[Callable] = None,
@@ -204,7 +204,7 @@ class XTerm(
         self._interface = interface
 
         # Set up interface event handlers
-        def handle_interface_send(_, data: bytes) -> None:
+        async def handle_interface_send(_, data: bytes) -> None:
             """Handle data read from the interface."""
             if self.client.id in Client.instances:
                 self.write(data)
@@ -219,7 +219,7 @@ class XTerm(
                 pass
             self.state = TerminalState.DISCONNECTED
 
-        interface.on_send(handle_interface_send)
+        interface.on_send_to_xterm(handle_interface_send)
         interface.on_shutdown(handle_interface_exit)
 
         # Set up client event handlers
@@ -250,21 +250,16 @@ class XTerm(
         async def handle_client_data(e: Any) -> None:
             """Handle client data input."""
             data, _ = e.args
+            if not len(data):
+                return
+
             if isinstance(data, str):
-                await interface.receive(base64.b64decode(data))
+                await interface.receive_from_xterm(base64.b64decode(data))
                 self.metadata.last_activity = datetime.now()
 
         async def handle_client_mount(e: Any) -> None:
             """Invoked when a client mounts the terminal."""
-            self._interface.start()
-
-            # Launch interface if not shared
-            if not self.client.shared:
-                background_tasks.create(
-                    self._interface.launch_interface(),
-                    name='Terminal interface task'
-                )
-
+            logger.debug(f"New connection {e}")
 
         # Register event handlers
         self.on("render", handle_client_render)
@@ -273,11 +268,13 @@ class XTerm(
         self.on("mount", handle_client_mount)
 
         # Set up client connection handling
-        def handle_client_connect(client: Client) -> None:
+        async def handle_client_connect(client: Client) -> None:
             """Handle client connections."""
             logger.info(f"Client connected: {client.id}")
             self.state = TerminalState.CONNECTED
             self.sync_with_frontend()
+            await self._interface.start()
+
 
         def handle_client_disconnect(e: Any) -> None:
             """Handle client disconnections."""
@@ -300,7 +297,6 @@ class XTerm(
 
     def sync_with_frontend(self) -> None:
         """Synchronize terminal state with frontend."""
-        print("sync_with_frontend")
         if core.loop is None or not self._interface:
             logger.warning("No event loop available for terminal sync")
             return
@@ -308,7 +304,6 @@ class XTerm(
         try:
             # Update screen content
             data = self._interface.get_screen_display()
-            print(f"!! get_screen_display called {data}")
             if isinstance(data, str):
                 data = data.encode()
 
@@ -320,12 +315,13 @@ class XTerm(
                 )
 
             # Update cursor position
-            cursor_position = self._interface.get_cursor_position()
-            self.set_cursor_location(*cursor_position)
+            if cursor_position := self._interface.get_cursor_position():
+                self.set_cursor_location(*cursor_position)
 
             # Check if interface is dead
             if self._interface.is_shutdown():
                 self.write(b"[Interface Exited]\033[?25l\n\r")
                 self.state = TerminalState.DISCONNECTED
+
         except Exception as e:
             logger.error(f"Failed to sync with frontend: {e}")

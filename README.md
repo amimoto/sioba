@@ -14,7 +14,7 @@ This **WIP** project provides an [xterm.js](https://xtermjs.org/) based terminal
 
 - **NiceGUI Integration**: Easily add a terminal component inside your NiceGUI UI.
 - **Local Shell Support**: Provides a local shell out of the box on Linux and Windows (via `pywinpty` on Windows).
-- **Serial/Custom Support**: Extend the base `Interface` class to communicate with any data source, such as serial devices, remote servers, or custom processes.
+- **Custom IO Stream Support**: Extend the base `Interface` class to communicate with any data source, such as serial devices, remote servers, or custom processes.
 - **Concurrent Access**: Multiple terminals or multiple users are supported.
 - **Persistent State**: Caches screen data, so refreshing doesn’t necessarily lose session output.
 - **Optional Authentication**: The `niceterm` CLI supports authentication or no-auth modes.
@@ -133,21 +133,90 @@ from niceterminal.interface import Interface
 **Purpose**:
 - Defines the core contract for reading/writing data between the browser-based terminal and a Python-driven data source.
 
-**Key Methods**:
-- **`write(self, data: bytes) -> None`**
-  - Invoked when the user types or sends data from the terminal.
-- **`read(self, data: bytes) -> None`**
-  - Sends data to be rendered in the terminal.
+**Methods**:
+- **`send(data: bytes) -> None`**
+  - Sends data to to the web-based XTerm to be shown to the user
+- **`receive(data: bytes) -> None`**
+  - Invoked when data is received from the web-based XTerm
 - **`close(self) -> None`**
   - Close/cleanup the underlying connection or process.
+
+- **`is_running(self) -> bool`**
+  - True when the interface is actively sending/receiving data
+- **`is_shutdow(self) -> bool`**
+  - True when the interface has closed and we don't expect more IO
 - **`is_closed(self) -> bool`**
   - Return True if the backend is closed or invalid.
 
+- **`on_send(on_send: Callable) -> None`**
+- **`on_receive(on_send: Callable) -> None`**
+- **`on_set_title_handle(on_send: Callable) -> None`**
+- **`on_shutdown(on_send: Callable) -> None`**
+
+- **`set_title(name: str) -> None`**
+- **`set_size(rows: int, cols: int, xpix: int=0, ypix: int=0) -> None`**
+- **`get_screen_display() -> bytes`**
+- **`get_cursor_position() -> tuple[int, int]|None`**
+
 Extend `Interface` to suit your needs (local shell, remote connections, serial devices, etc.).
+
+### BufferedInterface Base Class
+
+### PersistantInterface Base Class
+
+### FunctionInterface Class
+
+This is probably one of the more useful classes. This can be used with basic function code to write text based interfaces that interact with a user over the web.
+
+Basic example:
+
+```python
+#!/usr/bin/env python
+
+from nicegui import ui
+from niceterminal.interface.function import FunctionInterface
+from niceterminal.xterm import XTerm
+
+import time
+import datetime
+
+def terminal_code(interface: FunctionInterface):
+    interface.print("Hello, World!")
+    interface.print("This is a simple script.")
+
+    name = interface.input("What's your name? ")
+    interface.print(f"Hello, {name}!")
+
+    hidden = interface.getpass("Enter your hidden word: ")
+    interface.print(f"Your hidden word is: {hidden}")
+
+    while True:
+        time.sleep(2)
+        interface.print(f"It is: {datetime.datetime.now()}")
+
+xterm = XTerm(
+            interface=FunctionInterface(terminal_code)
+        ).classes("w-full")
+
+# Make sure static files can be found
+try:
+    ui.run(
+        title="NiceTerminal Function Example",
+        port=9000,
+        host="0.0.0.0",
+        reload=False,
+        show=True,
+        favicon="📟"
+    )
+except KeyboardInterrupt:
+    pass
+
+```
+
 
 ---
 
-## Serial Port Example
+## Custom Interface Example: Serial Port
 
 Below is an example of using [pyserial](https://pyserial.readthedocs.io/en/latest/) to connect a serial port to the terminal.
 

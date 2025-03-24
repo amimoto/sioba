@@ -33,12 +33,12 @@ class TerminalController:
         new_interface.on_set_title(self.on_set_title_handle)
         return new_interface
 
-    def close_interface(self, interface_id: str) -> None:
+    async def close_interface(self, interface_id: str) -> None:
         # Find the interface
         if interface := self.interfaces[interface_id]:
 
             # Close the interface
-            asyncio.create_task(interface.shutdown())
+            await interface.shutdown()
 
             # Close the ui tab
             for terminal_ui in self.terminal_uis.values():
@@ -49,11 +49,11 @@ class TerminalController:
             # Remove the interface from the controller
             del self.interfaces[interface_id]
 
-    def on_set_title_handle(self, interface: xterm.Interface, title: str) -> None:
+    async def on_set_title_handle(self, interface: xterm.Interface, title: str) -> None:
         for terminal_ui in self.terminal_uis.values():
             if terminal_ui.is_deleted():
                 continue
-            terminal_ui.on_set_title_handle(interface, title)
+            await terminal_ui.on_set_title_handle(interface, title)
 
     def new_terminal(self, interface: xterm.Interface = None) -> None:
         """ Create a new terminal.
