@@ -1,8 +1,6 @@
 services:
   src:
     network_mode: "host"
-    ports:
-      - 8080:8080
     build:
       context: .
     # Uncomment this if you wish to "check into" this container

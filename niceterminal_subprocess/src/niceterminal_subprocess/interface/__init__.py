@@ -16,7 +16,7 @@ except ImportError as e:
     except ImportError as e:
         raise ImportError("No suitable subprocess interface found")
 
-class ShellInterface(SubprocessInterface):
+class ShellInterface(PersistentInterface, SubprocessInterface):
     pass
     '''
     @logger.catch

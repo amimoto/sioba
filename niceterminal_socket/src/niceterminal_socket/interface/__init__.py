@@ -31,8 +31,6 @@ class SocketInterface(BufferedInterface):
     async def launch_interface(self):
         """Launch the socket interface"""
         print(f"launch_interface {self.state=}")
-        if self.state != INTERFACE_STATE_INITIALIZED:
-            return
 
         # Set the state to STARTED immediately so start() won't wait infinitely
         self.state = INTERFACE_STATE_STARTED

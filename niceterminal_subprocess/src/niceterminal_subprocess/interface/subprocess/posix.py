@@ -8,7 +8,7 @@ import termios
 
 from typing import Callable
 
-from ..base import Interface, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
+from niceterminal.interface import Interface, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
 from niceterminal.utils import default_shell
 
 from loguru import logger
@@ -17,14 +17,14 @@ class PosixInterface(Interface):
     def __init__(self,
                  invoke_command: str,
                  shutdown_command: str = None,
-                 on_send: Callable = None,
-                 on_receive: Callable = None,
+                 on_send_to_xterm: Callable = None,
+                 on_receive_from_xterm: Callable = None,
                  on_shutdown: Callable = None,
                  cwd:str=None,
                  ):
         super().__init__(
-            on_send = on_send,
-            on_receive = on_receive,
+            on_send_to_xterm = on_send_to_xterm,
+            on_receive_from_xterm = on_receive_from_xterm,
             on_shutdown = on_shutdown,
         )
         self.primary_fd, self.subordinate_fd = pty.openpty()
@@ -36,10 +36,6 @@ class PosixInterface(Interface):
     @logger.catch
     async def launch_interface(self):
         """Starts the shell process asynchronously."""
-        if self.state != INTERFACE_STATE_INITIALIZED:
-            return
-        self.state = INTERFACE_STATE_STARTED
-
         shell = default_shell()
         invoke_command = self.invoke_command or shell
 
@@ -63,14 +59,13 @@ class PosixInterface(Interface):
     def _read_loop(self):
         """Callback when data is available to read from the shell."""
         if data := os.read(self.primary_fd, 10240):
-            self.receive(data)
+            asyncio.create_task(self.send_to_xterm(data))
 
     @logger.catch
-    async def send(self, data: bytes):
+    async def receive_from_xterm(self, data: bytes):
         """Writes data to the shell."""
-        if self.state != INTERFACE_STATE_STARTED:
-            return
         os.write(self.primary_fd, data)
+        await super().receive_from_xterm(data)
 
     @logger.catch
     def set_size(self, rows, cols, xpix=0, ypix=0):
@@ -90,7 +85,7 @@ class PosixInterface(Interface):
         await self.shutdown()
 
     @logger.catch
-    def shutdown(self):
+    async def shutdown(self):
         """Shuts down the shell process."""
         logger.info(f"Shutting down process {self.process.pid}")
         if self.state == INTERFACE_STATE_STARTED:

@@ -61,9 +61,8 @@ class FunctionInterface(BufferedInterface):
 
     @logger.catch
     async def launch_interface(self) -> bool:
+        logger.debug("Launching function interface")
         """Launch the wrapped function in a separate thread"""
-        if self.state != INTERFACE_STATE_INITIALIZED:
-            return False
 
         # Store the main event loop for later use
         self.main_loop = asyncio.get_running_loop()
@@ -72,6 +71,7 @@ class FunctionInterface(BufferedInterface):
         self.state = INTERFACE_STATE_STARTED
 
         # Create the send queue loop
+        logger.debug("Starting send_to_xterm_loop")
         asyncio.create_task(self.send_to_xterm_loop())
 
         # Launch the function
@@ -121,6 +121,7 @@ class FunctionInterface(BufferedInterface):
         text = text.replace("\n", "\r\n")
 
         # Put the data in the send queue
+        logger.debug(f"Sending to xterm: {text}")
         self.send_queue.sync_q.put(text.encode())
 
     @logger.catch
@@ -169,7 +170,6 @@ class FunctionInterface(BufferedInterface):
                 data = b'\r\n'
 
             # If we're not capturing input, just send the data
-            print(f"<{data}>")
             await self.send_queue.async_q.put(data)
             return
 

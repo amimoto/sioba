@@ -4,7 +4,10 @@ from nicegui import ui
 from niceterminal_subprocess.interface import ShellInterface
 from niceterminal.xterm import XTerm
 
-xterm = XTerm(ShellInterface("cmd.exe")).classes("w-full")
+xterm = XTerm(
+            #ShellInterface("cmd.exe")
+            ShellInterface("bash")
+        ).classes("w-full")
 
 # Make sure static files can be found
 try:
