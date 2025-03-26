@@ -30,6 +30,7 @@ class Interface:
 
         self.id = str(uuid.uuid4())
         self.title = ""
+        self.reference_count = 0
 
         self._on_receive_from_xterm_callbacks = set()
         self._on_send_from_xterm_callbacks = set()
@@ -60,6 +61,16 @@ class Interface:
     def init(self):
         """ Subclassable method to initialize the interface """
         pass
+
+    def reference_increment(self):
+        self.reference_count += 1
+
+    def reference_decrement(self):
+        self.reference_count -= 1
+        if self.reference_count <= 0:
+            asyncio.create_task(
+                self.shutdown()
+            )
 
     @logger.catch
     async def start(self) -> "Interface":

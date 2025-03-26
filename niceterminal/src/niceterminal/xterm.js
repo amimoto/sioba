@@ -86,6 +86,11 @@ export default {
       ...this.options,
     }
 
+    console.log(
+      "Terminal options",
+      this.options
+    )
+
     this.term = new Terminal(options);
     this.fitAddon = new FitAddon();
     this.searchAddon = new SearchAddon();

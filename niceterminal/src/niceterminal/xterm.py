@@ -25,6 +25,7 @@ Example:
 
 import asyncio
 import base64
+import weakref
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -40,7 +41,7 @@ from nicegui.awaitable_response import AwaitableResponse
 
 from niceterminal.interface.base import Interface
 # from niceterminal.interface.subprocess import ShellInterface, INVOKE_COMMAND
-from niceterminal.errors import TerminalClosedError
+from niceterminal.errors import TerminalClosedError, ClientDeleted
 
 @dataclass
 class TerminalConfig:
@@ -58,6 +59,7 @@ class TerminalConfig:
     term_type: str = 'xterm-256color'
     scrollback: int = 1000
     encoding: str = 'utf-8'
+    convertEol: bool = True
 
 class TerminalState(Enum):
     """Possible states of the terminal."""
@@ -99,6 +101,9 @@ class XTerm(
         metadata: Terminal session metadata
     """
 
+    def __getattribute__(self, name):
+        #print(f"xterm.js: {name}")
+        return super().__getattribute__(name)
 
     def __init__(
         self,
@@ -131,11 +136,12 @@ class XTerm(
            **kwargs
         )
 
-        self.props.options = {
+        self._props["options"] = {
                 'rows': self.config.rows,
                 'cols': self.config.cols,
                 'termType': self.config.term_type,
                 'scrollback': self.config.scrollback,
+                'convertEol': self.config.convertEol,
             }
  
         # Add required JavaScript resources
@@ -175,6 +181,9 @@ class XTerm(
             # logger.warning("No event loop available for terminal write")
             return
 
+        if self._deleted:
+            raise ClientDeleted()
+
         try:
             serialized_data = base64.b64encode(data).decode()
             self.run_method("write", serialized_data)
@@ -201,7 +210,8 @@ class XTerm(
         if self.state == TerminalState.CLOSED:
             raise TerminalClosedError("Cannot connect interface to closed terminal")
 
-        self._interface = interface
+        self._interface = weakref.proxy(interface)
+        self._interface.reference_increment()
 
         # Set up interface event handlers
         async def handle_interface_send(_, data: bytes) -> None:
@@ -215,7 +225,7 @@ class XTerm(
                 self.write(b"[Interface Exited]\033[?25l\n\r")
             # We risk triggering this exception as it won't be surprising
             # if someone closes their tab
-            except TerminalClosedError:
+            except (TerminalClosedError, ClientDeleted):
                 pass
             self.state = TerminalState.DISCONNECTED
 
@@ -325,3 +335,11 @@ class XTerm(
 
         except Exception as e:
             logger.error(f"Failed to sync with frontend: {e}")
+
+    def i_handle_delete(self):
+        if self._interface:
+            self._interface.reference_decrement()
+
+    def __del__(self):
+        print("deleting this record!!!!")
+        super().__del__()

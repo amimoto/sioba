@@ -3,11 +3,15 @@
 from nicegui import ui
 from niceterminal.interface import SocketInterface
 from niceterminal.xterm import XTerm
+import ssl
+
+ssl_context = ssl.create_default_context()
 
 socket_interface = SocketInterface(
                         connection={
                             "host": "example.com",
-                            "port": 80
+                            "port": 443,
+                            "ssl": ssl_context,
                         }
                     )
 xterm = XTerm(socket_interface).classes("w-full")

@@ -8,9 +8,10 @@ from typing import Callable
 
 from .base import Interface, BufferedInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_SHUTDOWN
 
-from ..errors import InterfaceNotStarted
+from ..errors import InterfaceNotStarted, InterfaceShutdown
 
 from enum import Enum
+import weakref
 
 from loguru import logger
 
@@ -25,25 +26,21 @@ class CaptureMode(Enum):
     GETPASS = 3
 
 class FunctionInterface(BufferedInterface):
+    def _i_getattribute__(self, name):
+        print(f"FunctionInterface: {name}")
+        return super().__getattribute__(name)
+
+
     def __init__(self,
                  function: Callable,
-                 on_receive_from_xterm: Callable = None,
-                 on_send_to_xterm: Callable = None,
-                 on_shutdown: Callable = None,
-                 on_set_title: Callable = None,
                  default_capture_state: CaptureMode = CaptureMode.ECHO,
+                 **kwargs
                  ):
-        super().__init__(
-            on_receive_from_xterm=on_receive_from_xterm,
-            on_send_to_xterm=on_send_to_xterm,
-            on_shutdown=on_shutdown,
-            on_set_title=on_set_title
-        )
+        super().__init__(**kwargs)
         self.function = function
 
         # For input prompts
         self.input_buffer: bytes = b""
-        self.input_ready: asyncio.Event = asyncio.Event()
         self.input_is_password = False
 
         # Send to xterm queue
@@ -59,7 +56,6 @@ class FunctionInterface(BufferedInterface):
 
         self.main_loop = None  # Will store the main asyncio loop
 
-    @logger.catch
     async def launch_interface(self) -> bool:
         logger.debug("Launching function interface")
         """Launch the wrapped function in a separate thread"""
@@ -76,9 +72,20 @@ class FunctionInterface(BufferedInterface):
 
         # Launch the function
         def _run_function():
-            res = self.function(self)
-            if asyncio.iscoroutine(res):
-                asyncio.run(res)
+            logger.debug(f"Running function {self.function}")
+            try:
+                res = self.function(weakref.proxy(self))
+                #if asyncio.iscoroutine(res):
+                #    asyncio.run(res)
+            except InterfaceShutdown:
+                # This is just a notification that we're shutdown
+                # let's just pass through to the end
+                pass
+            except Exception as e:
+                logger.error(f"Error in function: {e=} {type(e)}")
+                self.shutdown()            
+            logger.debug(f"Function {self.function} finished")
+
         self.function_thread = threading.Thread(target=_run_function, daemon=True)
         self.function_thread.start()
 
@@ -88,8 +95,8 @@ class FunctionInterface(BufferedInterface):
     async def shutdown(self) -> None:
         """Shutdown the interface"""
         if self.send_queue:
-            self.send_queue.aclose()
-        super().shutdown()
+            await self.send_queue.aclose()
+        await super().shutdown()
 
     @logger.catch
     async def send_to_xterm_loop(self) -> None:
@@ -101,16 +108,21 @@ class FunctionInterface(BufferedInterface):
                 # Send data to the terminal using the main event loop
                 await self.send_to_xterm(data)
 
+            except janus.QueueShutDown:
+                break
+
             except asyncio.CancelledError:
                 break
 
-    @logger.catch
+            except InterfaceShutdown:
+                break
+
     def print(self, *a, **kw) -> None:
         """Print text to the terminal"""
-        if self.state != INTERFACE_STATE_STARTED:
+        if self.state == INTERFACE_STATE_INITIALIZED:
             raise InterfaceNotStarted("Unable to print, interface not started")
         if self.state == INTERFACE_STATE_SHUTDOWN:
-            raise InterfaceNotStarted("Unable to print, interface is shut down")
+            raise InterfaceShutdown("Unable to print, interface is shut down")
 
         # Use the python string handling to format the text
         s = StringIO()
@@ -127,14 +139,13 @@ class FunctionInterface(BufferedInterface):
     @logger.catch
     def capture(self, prompt: str, capture_mode: CaptureMode) -> str:
         """Get password input (doesn't echo) from the terminal"""
-        if self.state != INTERFACE_STATE_STARTED:
+        if self.state == INTERFACE_STATE_INITIALIZED:
             raise InterfaceNotStarted("Unable to get input, interface not started")
         if self.state == INTERFACE_STATE_SHUTDOWN:
-            raise InterfaceNotStarted("Unable to get input, interface is shut down")
+            raise InterfaceShutdown("Unable to get input, interface is shut down")
 
         # Clear any previous input
         self.input_buffer = b""
-        self.input_ready.clear()
         self.capture_mode = capture_mode
 
         # Display the prompt
@@ -162,41 +173,63 @@ class FunctionInterface(BufferedInterface):
 
     @logger.catch
     async def receive_from_xterm(self, data: bytes) -> None:
-        if self.capture_mode == CaptureMode.DISCARD:
-            return
+        if self.state == INTERFACE_STATE_INITIALIZED:
+            raise InterfaceNotStarted("Interface not ready to receive data")
+        if self.state == INTERFACE_STATE_SHUTDOWN:
+            raise InterfaceShutdown("Interface is shut down")
 
-        if self.capture_mode == CaptureMode.ECHO:
-            if data == b'\r':  # Enter key pressed
-                data = b'\r\n'
+        try:
+            if self.capture_mode == CaptureMode.DISCARD:
+                if data == b'\x03':  # Ctrl-C
+                    logger.debug("Ctrl-C received, shutting down")
+                    await self.shutdown()
+                return
 
-            # If we're not capturing input, just send the data
-            await self.send_queue.async_q.put(data)
-            return
+            if self.capture_mode == CaptureMode.ECHO:
+                if data == b'\r':  # Enter key pressed
+                    data = b'\r\n'
 
-        # Process based on the input character
-        if data == b'\r':  # Enter key pressed
-            # Echo a newline
-
-            # Store the result and signal it's ready
-            input_result = self.input_buffer
-            self.input_buffer = b""
-            self.input_ready.set()
-            await self.send_queue.async_q.put(b'\r\n')
-            self.input_queue.sync_q.put(input_result)
-
-
-        elif data == b'\x7f' or data == b'\b':  # Backspace
-            if self.input_buffer:
-                # Remove the last character
-                self.input_buffer = self.input_buffer[:-1]
-
-                # Echo the backspace action if in INPUT mode
-                if self.capture_mode == CaptureMode.INPUT:
-                    await self.send_queue.async_q.put(b'\b \b')
-        else:
-            # Add the character to the buffer
-            self.input_buffer += data
-
-            # Echo the character or * for password
-            if self.capture_mode == CaptureMode.INPUT:
+                elif data == b'\x03':  # Ctrl-C
+                    logger.debug("Ctrl-C received, shutting down")
+                    await self.shutdown()
+                
+                # If we're not capturing input, just send the data
                 await self.send_queue.async_q.put(data)
+                return
+
+            # Process based on the input character
+            if data == b'\r':  # Enter key pressed
+                # Echo a newline
+
+                # Store the result and signal it's ready
+                input_result = self.input_buffer
+                self.input_buffer = b""
+                await self.send_queue.async_q.put(b'\r\n')
+                self.input_queue.sync_q.put(input_result)
+
+            elif data == b'\x03':  # Ctrl-C
+                # Signal the input is ready
+                #self.input_queue.sync_q.put(b'\x03')
+                logger.debug("Ctrl-C received, shutting down")
+                await self.shutdown()
+                self.input_queue.sync_q.put(b"")
+
+            elif data == b'\x7f' or data == b'\b':  # Backspace
+                if self.input_buffer:
+                    # Remove the last character
+                    self.input_buffer = self.input_buffer[:-1]
+
+                    # Echo the backspace action if in INPUT mode
+                    if self.capture_mode == CaptureMode.INPUT:
+                        await self.send_queue.async_q.put(b'\b \b')
+            else:
+                # Add the character to the buffer
+                self.input_buffer += data
+
+                # Echo the character or * for password
+                if self.capture_mode == CaptureMode.INPUT:
+                    await self.send_queue.async_q.put(data)
+
+        except janus.QueueShutDown:
+            # No longer need to respond
+            pass

@@ -11,7 +11,7 @@ from loguru import logger
 
 class CustomInterface(Interface):
     async def receive_from_xterm(self, data: bytes):
-        await self.send_to_xterm(f"Received {repr(data)}\r\n".encode())
+        await self.send_to_xterm(f"Received {repr(data)} / {int(data[0])} \r\n".encode())
 
 xterm = XTerm(
             interface=CustomInterface()
