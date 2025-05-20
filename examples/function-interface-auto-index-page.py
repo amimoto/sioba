@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from niceterminal.interface import Interface, FunctionInterface
-from niceterminal.xterm import XTerm
+from niceterminal_interface import FunctionInterface
+from niceterminal.xterm import XTermInterface
 import asyncio
 
 import time
@@ -23,7 +23,7 @@ def terminal_code(interface: FunctionInterface):
         time.sleep(1)
         interface.print(f"It is: {datetime.datetime.now()}")
 
-xterm = XTerm(
+xterm = XTermInterface(
             interface=FunctionInterface(terminal_code)
         ).classes("w-full")
 

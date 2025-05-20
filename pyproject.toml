@@ -5,6 +5,7 @@ distribution = false
 dev = [
     # Local libraries
     "-e file:///${PROJECT_ROOT}/niceterminal",
+    "-e file:///${PROJECT_ROOT}/niceterminal_interface",
     "-e file:///${PROJECT_ROOT}/niceterminal_subprocess",
     "-e file:///${PROJECT_ROOT}/niceterminal_app",
 
@@ -13,7 +14,6 @@ dev = [
     "pytest-selenium>=4.0.2",
     "pytest-asyncio>=0.25.3",
     "selenium>=4.28.1",
-
 ]
 
 [project]

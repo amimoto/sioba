@@ -2,9 +2,9 @@
 
 from nicegui import ui
 from niceterminal_subprocess.interface import ShellInterface
-from niceterminal.xterm import XTerm
+from niceterminal.xterm import XTermInterface
 
-xterm = XTerm(
+xterm = XTermInterface(
             #ShellInterface("cmd.exe")
             ShellInterface("bash")
         ).classes("w-full")

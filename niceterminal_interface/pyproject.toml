@@ -1,16 +1,17 @@
 [project]
-name = "niceterminal_app"
-version = "0.2.20250324"
-description = "A library for building terminal applications with NiceGUI and rich terminal features."
+name = "niceterminal-interface"
+version = "0.2.20250413"
+description = "Interface framework to bridge between various interfaces and niceterminal XTerm."
 authors = [
-    {name = "Aki Mimoto", email = "aki@bako.ca"},
+    { name = "Aki Mimoto", email = "aki@bako.ca" }
 ]
 dependencies = [
-    "niceterminal>=0.2.20250324",
+    "nicegui>=2.5.0",
+    "niceterminal>=0.2.20250209",
+    "loguru>=0.7.2",
 ]
 requires-python = ">=3.9"
-# readme = "README.md"
-license = {text = "MIT-0"}
+license = { text = "MIT-0" }
 
 [metadata]
 long_description = "file:README.md"
@@ -18,7 +19,7 @@ long_description_content_type = "text/markdown"
 
 [tool.pdm]
 distribution = true
-build = { includes = ["src/niceterminal_app"] }
+build = { includes = ["src/niceterminal_interface"] }
 
 [overrides]
 niceterminal = { path = "../niceterminal", develop = true }
@@ -26,9 +27,6 @@ niceterminal = { path = "../niceterminal", develop = true }
 [build-system]
 requires = ["pdm-backend>=0.12"]
 build-backend = "pdm.backend"
-
-[project.scripts]
-niceterm = "niceterminal.cli:main [cli]"
 
 [project.urls]
 Homepage = "https://github.com/amimoto/niceterminal"
@@ -39,11 +37,3 @@ addopts = "--driver Chrome"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
-
-[dependency-groups]
-test = [
-    "pytest>=8.3.4",
-    "pytest-selenium>=4.0.2",
-    "pytest-asyncio>=0.25.3",
-    "selenium>=4.28.1",
-]

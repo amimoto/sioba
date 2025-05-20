@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from niceterminal.interface import EchoInterface
-from niceterminal.xterm import XTerm
+from niceterminal_interface import EchoInterface
+from niceterminal.xterm import XTermInterface
 
-xterm = XTerm(EchoInterface()).classes("w-full")
+xterm = XTermInterface(EchoInterface()).classes("w-full")
 
 # Make sure static files can be found
 try:

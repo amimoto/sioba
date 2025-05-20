@@ -16,6 +16,7 @@ RUN :\
     && DEBIAN_FRONTEND=noninteractive apt dist-upgrade -y \
     # Super handy tools used typically for in-situ debugging
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        bash \
         build-essential \
         ca-certificates \
         curl \
@@ -82,11 +83,12 @@ WORKDIR /src
 USER $USER
 
 # Copy over the data files
+#COPY . /src
 COPY --chown=$USER:$USER . /src
 
 ENV PATH=/home/$USER/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-RUN /src/docker/setup-env.sh
+RUN /usr/bin/bash /src/docker/setup-env.sh
 
 CMD sleep infinity
 

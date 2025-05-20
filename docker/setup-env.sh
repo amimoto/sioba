@@ -1,10 +1,11 @@
-#!/bin/bash
+#!/usr/bin/sh
 
 # Set up environment variables for `nvm`
 export NVM_DIR="/home/user/.nvm"
 export PATH="$NVM_DIR/versions/node/v18.18.2/bin:$PATH"
 export PATH="/home/user/.local/bin:$PATH"
 
+echo "USER IS $USER"
 
 # Install `nvm` and use it to install Node.js, npm, and TypeScript
 echo "Installing NVM"
@@ -25,5 +26,5 @@ curl -sSL https://pdm-project.org/install-pdm.py | python3 -
 echo "installing development script code"
 cd /src
 
-#pdm install -d
+pdm install -d
 

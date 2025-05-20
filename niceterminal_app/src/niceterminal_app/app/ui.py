@@ -46,7 +46,7 @@ class TerminalUI:
 
         # Insert new tab before the "+" tab
         with self.tabs:
-            tab_title = tab_title or f'Tab {self.controller.interfaces.creation_count}'
+            tab_title = tab_title or f'Tab {self.controller.interfaces.start_count}'
             tab = ui.tab(
                         name=tab_id,
                         label="",
@@ -117,7 +117,7 @@ class TerminalUI:
     def request_close_tab(self, tab_id: str):
         self.controller.close_interface(tab_id)
 
-    async def on_set_title_handle(self, interface: xterm.Interface, title: str) -> None:
+    async def on_set_terminal_title_handle(self, interface: xterm.Interface, title: str) -> None:
         if tab_data := self.tab_references.get(interface.id):
             tab_data["label"].set_text(f"{interface.creation_index}: {title}")
 

@@ -13,7 +13,7 @@ class TerminalInterfaces:
 
         # We do take advantage of the fact that dicts are ordered
         self.interfaces = {}
-        self.creation_count = 0
+        self.start_count = 0
 
     def new_interface(self, interface: xterm.Interface = None):
         """
@@ -21,9 +21,9 @@ class TerminalInterfaces:
         if not interface:
             logger.info("Starting ShellInterface!")
             interface = ShellInterface()
-            self.creation_count += 1
-            interface.creation_index = self.creation_count
-            asyncio.create_task(interface.launch_interface())
+            self.start_count += 1
+            interface.creation_index = self.start_count
+            asyncio.create_task(interface.start())
 
         self.interfaces[interface.id] = interface
 

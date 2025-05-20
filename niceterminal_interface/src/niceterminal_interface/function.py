@@ -8,7 +8,7 @@ from typing import Callable
 
 from .base import Interface, BufferedInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_SHUTDOWN
 
-from ..errors import InterfaceNotStarted, InterfaceShutdown
+from .errors import InterfaceNotStarted, InterfaceShutdown
 
 from enum import Enum
 import weakref
@@ -30,6 +30,8 @@ class FunctionInterface(BufferedInterface):
         print(f"FunctionInterface: {name}")
         return super().__getattribute__(name)
 
+    def __del__(self):
+        print(f"!!!!! FunctionInterface: __del__ {self.function}")
 
     def __init__(self,
                  function: Callable,
@@ -56,7 +58,7 @@ class FunctionInterface(BufferedInterface):
 
         self.main_loop = None  # Will store the main asyncio loop
 
-    async def launch_interface(self) -> bool:
+    async def start_interface(self) -> bool:
         logger.debug("Launching function interface")
         """Launch the wrapped function in a separate thread"""
 
@@ -67,8 +69,8 @@ class FunctionInterface(BufferedInterface):
         self.state = INTERFACE_STATE_STARTED
 
         # Create the send queue loop
-        logger.debug("Starting send_to_xterm_loop")
-        asyncio.create_task(self.send_to_xterm_loop())
+        logger.debug("Starting send_to_control_loop")
+        asyncio.create_task(self.send_to_control_loop())
 
         # Launch the function
         def _run_function():
@@ -92,21 +94,21 @@ class FunctionInterface(BufferedInterface):
         return True
 
     @logger.catch
-    async def shutdown(self) -> None:
+    async def shutdown_interface(self) -> None:
         """Shutdown the interface"""
         if self.send_queue:
             await self.send_queue.aclose()
         await super().shutdown()
 
     @logger.catch
-    async def send_to_xterm_loop(self) -> None:
+    async def send_to_control_loop(self) -> None:
         while self.state == INTERFACE_STATE_STARTED:
             try:
                 # Get data from the queue with a timeout to allow checking the state
                 data = await self.send_queue.async_q.get()
 
                 # Send data to the terminal using the main event loop
-                await self.send_to_xterm(data)
+                await self.send_to_control(data)
 
             except janus.QueueShutDown:
                 break
@@ -172,7 +174,7 @@ class FunctionInterface(BufferedInterface):
         return self.capture(prompt, CaptureMode.GETPASS)
 
     @logger.catch
-    async def receive_from_xterm(self, data: bytes) -> None:
+    async def receive_from_control(self, data: bytes) -> None:
         if self.state == INTERFACE_STATE_INITIALIZED:
             raise InterfaceNotStarted("Interface not ready to receive data")
         if self.state == INTERFACE_STATE_SHUTDOWN:

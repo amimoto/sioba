@@ -1,0 +1,3 @@
+[submodule "submodules/pyte"]
+	path = submodules/pyte
+	url = https://github.com/selectel/pyte.git

@@ -1,11 +1,18 @@
 #!/usr/bin/env python
 
 from nicegui import ui, Client
-from niceterminal.interface import Interface, FunctionInterface
-from niceterminal.xterm import XTerm
+from niceterminal_interface import Interface, FunctionInterface
+from niceterminal.xterm import XTermInterface
 
 import time
 import datetime
+import weakref
+
+@ui.page('/gc')
+async def gc_page(client: Client):
+    import gc
+    print(gc.collect())
+    return "foo"
 
 @ui.page('/')
 async def index(client: Client):
@@ -24,7 +31,7 @@ async def index(client: Client):
             time.sleep(2)
             interface.print(f"It is: {datetime.datetime.now()}")
 
-    xterm = XTerm(
+    xterm = XTermInterface(
                 FunctionInterface(terminal_code)
             ).classes("w-full")
 

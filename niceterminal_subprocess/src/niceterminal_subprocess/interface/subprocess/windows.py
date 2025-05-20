@@ -5,7 +5,7 @@ import subprocess
 
 from typing import Callable
 
-from niceterminal.interface import Interface, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
+from niceterminal_interface import Interface, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
 
 from loguru import logger
 
@@ -13,13 +13,18 @@ class WindowsInterface(Interface):
     def __init__(self,
                  invoke_command: str,
                  shutdown_command: str = None,
-                 on_receive_from_xterm: Callable = None,
+                 on_receive_from_control: Callable = None,
                  on_shutdown: Callable = None,
                  cwd: str = None,
+                 *args,
+                 **kwargs
                  ):
         super().__init__(
-            on_receive_from_xterm=on_receive_from_xterm,
-            on_shutdown=on_shutdown)
+            on_receive_from_control=on_receive_from_control,
+            on_shutdown=on_shutdown
+            *args,
+            **kwargs
+        )
         self.invoke_command = invoke_command
         self.shutdown_command = shutdown_command
         self.cwd = cwd
@@ -27,7 +32,7 @@ class WindowsInterface(Interface):
         self.main_loop = None
 
     @logger.catch
-    async def launch_interface(self):
+    async def start_interface(self):
         """Starts the shell process asynchronously."""
 
         # The console handle is created by winpty and used to interact with the shell
@@ -58,27 +63,26 @@ class WindowsInterface(Interface):
         while self.process.isalive():
             data = self.process.read()
             if data:
-                asyncio.run(self.send_to_xterm(data.encode()))
+                asyncio.run(self.send_to_control(data.encode()))
 
     @logger.catch
-    def set_size(self, rows, cols, xpix=0, ypix=0):
+    def set_terminal_size(self, rows, cols, xpix=0, ypix=0):
         """Sets the shell window size."""
         if self.state != INTERFACE_STATE_STARTED:
             return
-        super().set_size(rows=rows, cols=cols)
+        super().set_terminal_size(rows=rows, cols=cols)
 
     @logger.catch
-    async def receive_from_xterm(self, data: bytes):
+    async def receive_from_control(self, data: bytes):
         """Writes data to the shell."""
         if self.state != INTERFACE_STATE_STARTED:
             return
         self.process.write(data.decode())
-        await super().receive_from_xterm(data)
+        await super().receive_from_control(data)
 
     @logger.catch
-    async def shutdown(self):
+    async def shutdown_interface(self) -> None:
         """Shuts down the shell process."""
-        await super().shutdown()
         try:
             if self.process:
                 self.process.terminate()

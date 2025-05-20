@@ -1,7 +1,7 @@
 import asyncio
 from typing import Callable, Optional, TypedDict
-from niceterminal.interface import BufferedInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_SHUTDOWN
-from niceterminal.errors import InterfaceNotStarted
+from .base import PersistentInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_SHUTDOWN
+from .errors import InterfaceNotStarted
 from loguru import logger
 
 class ConnectionConfig(TypedDict):
@@ -10,7 +10,7 @@ class ConnectionConfig(TypedDict):
     port: int
 
 
-class SocketInterface(BufferedInterface):
+class SocketInterface(PersistentInterface):
     def __init__(self,
                  connection: ConnectionConfig,
                  **kwargs
@@ -24,7 +24,7 @@ class SocketInterface(BufferedInterface):
         self._send_task = None
 
     @logger.catch
-    async def launch_interface(self):
+    async def start_interface(self):
         """Launch the socket interface"""
         # Set the state to STARTED immediately so start() won't wait infinitely
         self.state = INTERFACE_STATE_STARTED
@@ -47,7 +47,7 @@ class SocketInterface(BufferedInterface):
                     break
 
                 # Process received data
-                await self.send_to_xterm(data)
+                await self.send_to_control(data)
 
             except ConnectionResetError as e:
                 logger.debug(f"Connection reset: {e}")
@@ -58,7 +58,7 @@ class SocketInterface(BufferedInterface):
                 return
 
     @logger.catch
-    async def receive_from_xterm(self, data: bytes):
+    async def receive_from_control(self, data: bytes):
         """Add data to the send queue"""
         if self.writer:
             data = data.replace(b"\r", b"\r\n")
@@ -67,14 +67,11 @@ class SocketInterface(BufferedInterface):
             self.writer.write(data)
 
             # Local echo the input
-            await self.send_to_xterm(data)
+            await self.send_to_control(data)
 
     @logger.catch
-    async def shutdown(self):
+    async def shutdown_interface(self):
         """Shutdown the interface"""
-        if self.state != INTERFACE_STATE_STARTED:
-            return
-
         # Cancel background tasks
         if self._receive_task:
             self._receive_task.cancel()
@@ -83,10 +80,3 @@ class SocketInterface(BufferedInterface):
         if self.writer:
             self.writer.close()
             await self.writer.wait_closed()
-
-        # Set state to shutdown
-        self.state = INTERFACE_STATE_SHUTDOWN
-
-        # Call on_shutdown callback if provided
-        if self.on_shutdown:
-            await self.on_shutdown()

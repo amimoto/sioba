@@ -25,41 +25,114 @@ Example:
 
 import asyncio
 import base64
-import weakref
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Callable, Dict, Any, Tuple, Set
+from typing import Optional, Callable, Set, Literal, Dict, Any
 
 from loguru import logger
-from nicegui import background_tasks, ui, core, app
+from nicegui import background_tasks, ui, core
 from nicegui.client import Client
 from nicegui.elements.mixins.disableable_element import DisableableElement
 from nicegui.elements.mixins.value_element import ValueElement
 from nicegui.awaitable_response import AwaitableResponse
 
-from niceterminal.interface.base import Interface
-# from niceterminal.interface.subprocess import ShellInterface, INVOKE_COMMAND
-from niceterminal.errors import TerminalClosedError, ClientDeleted
+from ..errors import TerminalClosedError, ClientDeleted
 
 @dataclass
 class TerminalConfig:
     """Configuration settings for XTerm terminal.
 
     Attributes:
-        rows: Number of rows in the terminal
-        cols: Number of columns in the terminal
-        term_type: Terminal type (e.g., 'xterm-256color')
-        scrollback: Number of lines to keep in scrollback buffer
-        encoding: Character encoding for terminal I/O
+        rows (int): Number of rows in the terminal.
+        cols (int): Number of columns in the terminal.
+        term_type (str): Terminal type (default: 'xterm-256color').
+        scrollback (int): Number of lines retained when scrolling.
+        encoding (str): Character encoding for terminal I/O.
+        convertEol (bool): Convert new lines to CRLF.
+        allowProposedApi (bool): Allow experimental APIs.
+        allowTransparency (Optional[bool]): Enable transparent background.
+        altClickMovesCursor (bool): Move cursor with Alt+Click.
+        cursorBlink (bool): Cursor blinking enabled.
+        cursorInactiveStyle (Optional[Literal['outline', 'block', 'bar', 'underline', 'none']]): Cursor style when inactive.
+        cursorStyle (Literal['block', 'underline', 'bar']): Active cursor style.
+        cursorWidth (Optional[int]): Cursor width in pixels.
+        customGlyphs (bool): Use custom glyphs for special characters.
+        disableStdin (bool): Disable standard input.
+        drawBoldTextInBrightColors (bool): Render bold text in bright colors.
+        fastScrollModifier (Optional[Literal['none', 'alt', 'ctrl', 'shift']]): Modifier key for fast scrolling.
+        fastScrollSensitivity (Optional[int]): Speed multiplier for fast scrolling.
+        fontFamily (str): Font family for rendering text.
+        fontSize (int): Font size for terminal text.
+        fontWeight (Optional[str]): Font weight for regular text.
+        fontWeightBold (Optional[str]): Font weight for bold text.
+        ignoreBracketedPasteMode (bool): Ignore bracketed paste sequences.
+        letterSpacing (Optional[int]): Spacing between characters.
+        lineHeight (Optional[float]): Line height for terminal text.
+        logLevel (Literal['trace', 'debug', 'info', 'warn', 'error', 'off']): Logging verbosity level.
+        macOptionClickForcesSelection (bool): Force selection on macOS option-click.
+        macOptionIsMeta (bool): Treat macOS option as meta key.
+        minimumContrastRatio (Optional[float]): Minimum contrast ratio for accessibility.
+        overviewRulerWidth (Optional[int]): Width of overview ruler in pixels.
+        rescaleOverlappingGlyphs (bool): Rescale glyphs to prevent overlap.
+        rightClickSelectsWord (bool): Select word on right-click.
+        screenReaderMode (bool): Enable support for screen readers.
+        scrollOnUserInput (bool): Scroll to bottom on user input.
+        scrollSensitivity (Optional[int]): Sensitivity for scrolling.
+        smoothScrollDuration (Optional[int]): Duration for smooth scrolling (ms).
+        tabStopWidth (int): Number of spaces per tab stop.
+        theme (Optional[Dict[str, Any]]): Terminal color theme.
+        windowsMode (bool): Enable Windows-specific mode adjustments.
+        wordSeparator (str): Characters used as word separators.
     """
+
     rows: int = 24
     cols: int = 80
     term_type: str = 'xterm-256color'
     scrollback: int = 1000
     encoding: str = 'utf-8'
     convertEol: bool = True
+
+    allowProposedApi: bool = False
+    allowTransparency: Optional[bool] = None
+    altClickMovesCursor: bool = True
+    cursorBlink: bool = False
+    cursorInactiveStyle: Optional[Literal['outline', 'block', 'bar', 'underline', 'none']] = 'outline'
+    cursorStyle: Literal['block', 'underline', 'bar'] = 'block'
+    cursorWidth: Optional[int] = None
+    customGlyphs: bool = True
+    disableStdin: bool = False
+    drawBoldTextInBrightColors: bool = True
+    fastScrollModifier: Optional[Literal['none', 'alt', 'ctrl', 'shift']] = 'alt'
+    fastScrollSensitivity: Optional[int] = 5
+    fontFamily: str = 'monospace'
+    fontSize: int = 14
+    fontWeight: Optional[str] = 'normal'
+    fontWeightBold: Optional[str] = 'bold'
+    ignoreBracketedPasteMode: bool = False
+    letterSpacing: Optional[int] = None
+    lineHeight: Optional[float] = None
+    logLevel: Literal['trace', 'debug', 'info', 'warn', 'error', 'off'] = 'info'
+    macOptionClickForcesSelection: bool = False
+    macOptionIsMeta: bool = False
+    minimumContrastRatio: Optional[float] = 1
+    overviewRulerWidth: Optional[int] = None
+    rescaleOverlappingGlyphs: bool = False
+    rightClickSelectsWord: bool = False
+    screenReaderMode: bool = False
+    scrollOnUserInput: bool = True
+    scrollSensitivity: Optional[int] = 1
+    smoothScrollDuration: Optional[int] = 0
+    tabStopWidth: int = 8
+    theme: Optional[Dict[str, Any]] = field(default_factory=dict)
+    windowsMode: bool = False
+    wordSeparator: str = " \t\n()[]{}',\""
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert dataclass instance to dictionary for use with xterm.js."""
+        return {k: v for k, v in self.__dict__.items() if v is not None}
+
 
 class TerminalState(Enum):
     """Possible states of the terminal."""
@@ -70,16 +143,14 @@ class TerminalState(Enum):
 
 @dataclass
 class TerminalMetadata:
-    """Metadata for terminal sessions.
-
-    Attributes:
-        created_at: When the terminal was created
-        connected_clients: Set of client IDs connected to this terminal
-        last_activity: Timestamp of last activity
+    """ This tracks non-control specific information such as clients connected and
+        activity timestamps for the purposes of both session management and potential
+        idle culling
     """
     created_at: datetime = field(default_factory=datetime.now)
     connected_clients: Set[str] = field(default_factory=set)
     last_activity: datetime = field(default_factory=datetime.now)
+
 
 class XTerm(
             ValueElement,
@@ -107,7 +178,6 @@ class XTerm(
 
     def __init__(
         self,
-        interface: Optional[Interface] = None,
         config: Optional[TerminalConfig] = None,
         value: str = '',
         on_change: Optional[Callable] = None,
@@ -118,7 +188,6 @@ class XTerm(
 
         Args:
             config: Terminal configuration settings
-            interface: Terminal interface implementation
             value: Initial terminal content
             on_change: Callback for content changes
             on_close: Callback for terminal closure
@@ -127,7 +196,6 @@ class XTerm(
         self.config = config or TerminalConfig()
         self.state = TerminalState.INITIALIZING
         self.metadata = TerminalMetadata()
-        self._interface: Optional[Interface] = None
         self.on_close_callback = on_close
 
         super().__init__(
@@ -136,30 +204,16 @@ class XTerm(
            **kwargs
         )
 
-        self._props["options"] = {
-                'rows': self.config.rows,
-                'cols': self.config.cols,
-                'termType': self.config.term_type,
-                'scrollback': self.config.scrollback,
-                'convertEol': self.config.convertEol,
-            }
- 
         # Add required JavaScript resources
-        self.add_resource(Path(__file__).parent / 'lib' / 'xterm.js')
+        self.add_resource(Path(__file__).parent.parent / 'lib' / 'xterm.js')
 
-        # Set up auto-close for non-shared clients
+        # Set up auto-close for non-shared clients (so when it's
+        # session based rather than auto-indexed)
         if not self.client.shared:
             background_tasks.create(
                 self._auto_close(),
                 name='auto-close terminal'
             )
-
-        if interface:
-            self.connect_interface(interface)
-
-    def focus(self) -> AwaitableResponse:
-        """Focus the terminal."""
-        return self.run_method("focus")
 
     def write(self, data: bytes) -> None:
         """Write data to the terminal.
@@ -192,109 +246,12 @@ class XTerm(
             logger.error(f"Failed to write to terminal: {e}")
             raise
 
+    def focus(self) -> AwaitableResponse:
+        """Focus the terminal."""
+        return self.run_method("focus")
+
     def set_cursor_location(self, row:int, col:int) -> AwaitableResponse:
         self.run_method("setCursorLocation", row, col)
-
-    def connect_interface(self, interface: Interface) -> None:
-        """Connect a terminal interface to this XTerm instance.
-
-        This method sets up bidirectional communication between the XTerm
-        and the provided interface implementation.
-
-        Args:
-            interface: The interface to connect
-
-        Raises:
-            RuntimeError: If terminal is already closed
-        """
-        if self.state == TerminalState.CLOSED:
-            raise TerminalClosedError("Cannot connect interface to closed terminal")
-
-        self._interface = weakref.proxy(interface)
-        self._interface.reference_increment()
-
-        # Set up interface event handlers
-        async def handle_interface_send(_, data: bytes) -> None:
-            """Handle data read from the interface."""
-            if self.client.id in Client.instances:
-                self.write(data)
-
-        def handle_interface_exit(_) -> None:
-            """Handle interface exit."""
-            try:
-                self.write(b"[Interface Exited]\033[?25l\n\r")
-            # We risk triggering this exception as it won't be surprising
-            # if someone closes their tab
-            except (TerminalClosedError, ClientDeleted):
-                pass
-            self.state = TerminalState.DISCONNECTED
-
-        interface.on_send_to_xterm(handle_interface_send)
-        interface.on_shutdown(handle_interface_exit)
-
-        # Set up client event handlers
-        async def handle_client_render(e: Any) -> None:
-            """Handle client render events."""
-            data, sio_sid = e.args
-            client_id = f"{self.client.id}-{sio_sid}"
-            self.metadata.connected_clients.add(client_id)
-
-        async def handle_client_resize(e: Any) -> None:
-            """Handle terminal resize events."""
-            data, sio_sid = e.args
-            client_id = f"{self.client.id}-{sio_sid}"
-
-            rows = data.get("rows")
-            cols = data.get("cols")
-            if not (rows and cols):
-                return
-
-            interface.term_client_metadata_update(
-                client_id,
-                {
-                    "rows": rows,
-                    "cols": cols
-                }
-            )
-
-        async def handle_client_data(e: Any) -> None:
-            """Handle client data input."""
-            data, _ = e.args
-            if not len(data):
-                return
-
-            if isinstance(data, str):
-                await interface.receive_from_xterm(base64.b64decode(data))
-                self.metadata.last_activity = datetime.now()
-
-        async def handle_client_mount(e: Any) -> None:
-            """Invoked when a client mounts the terminal."""
-            logger.debug(f"New connection {e}")
-
-        # Register event handlers
-        self.on("render", handle_client_render)
-        self.on("resize", handle_client_resize)
-        self.on("data", handle_client_data)
-        self.on("mount", handle_client_mount)
-
-        # Set up client connection handling
-        async def handle_client_connect(client: Client) -> None:
-            """Handle client connections."""
-            logger.info(f"Client connected: {client.id}")
-            self.state = TerminalState.CONNECTED
-            self.sync_with_frontend()
-            await self._interface.start()
-
-
-        def handle_client_disconnect(e: Any) -> None:
-            """Handle client disconnections."""
-            logger.info(f"Client disconnected: {e}")
-            # Remove disconnected client from metadata
-            client_id = f"{self.client.id}-{getattr(e, 'sid', '')}"
-            self.metadata.connected_clients.discard(client_id)
-
-        self.client.on_connect(handle_client_connect)
-        self.client.on_disconnect(handle_client_disconnect)
 
     async def _auto_close(self) -> None:
         """Auto-close handler for terminal cleanup."""
@@ -305,7 +262,6 @@ class XTerm(
         if self.on_close_callback:
             await self.on_close_callback(self)
 
-    def sync_with_frontend(self) -> None:
         """Synchronize terminal state with frontend."""
         if core.loop is None or not self._interface:
             logger.warning("No event loop available for terminal sync")
@@ -313,7 +269,7 @@ class XTerm(
 
         try:
             # Update screen content
-            data = self._interface.get_screen_display()
+            data = self._interface.get_terminal_buffer()
             if isinstance(data, str):
                 data = data.encode()
 
@@ -325,7 +281,7 @@ class XTerm(
                 )
 
             # Update cursor position
-            if cursor_position := self._interface.get_cursor_position():
+            if cursor_position := self._interface.get_terminal_cursor_position():
                 self.set_cursor_location(*cursor_position)
 
             # Check if interface is dead
@@ -335,11 +291,3 @@ class XTerm(
 
         except Exception as e:
             logger.error(f"Failed to sync with frontend: {e}")
-
-    def i_handle_delete(self):
-        if self._interface:
-            self._interface.reference_decrement()
-
-    def __del__(self):
-        print("deleting this record!!!!")
-        super().__del__()

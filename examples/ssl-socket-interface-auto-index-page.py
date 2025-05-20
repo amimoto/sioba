@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from niceterminal.interface import SocketInterface
-from niceterminal.xterm import XTerm
+from niceterminal_interface import SocketInterface
+from niceterminal.xterm import XTermInterface
 import ssl
 
 ssl_context = ssl.create_default_context()
@@ -14,7 +14,7 @@ socket_interface = SocketInterface(
                             "ssl": ssl_context,
                         }
                     )
-xterm = XTerm(socket_interface).classes("w-full")
+xterm = XTermInterface(socket_interface).classes("w-full")
 
 # Make sure static files can be found
 try:

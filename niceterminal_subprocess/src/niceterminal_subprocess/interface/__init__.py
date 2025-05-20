@@ -1,6 +1,6 @@
 from typing import Callable
 
-from niceterminal.interface import PersistentInterface
+from niceterminal_interface import PersistentInterface
 
 from loguru import logger
 
@@ -24,9 +24,9 @@ class ShellInterface(PersistentInterface, SubprocessInterface):
                 self,
                 invoke_command: str = INVOKE_COMMAND,
                 shutdown_command: str = None,
-                on_receive_from_xterm: Callable = None,
+                on_receive_from_control: Callable = None,
                 on_shutdown: Callable = None,
-                on_set_title: Callable = None,
+                on_set_terminal_title: Callable = None,
                 cwd: str = None,
                 cols: int = 80,
                 rows: int = 24,
@@ -37,9 +37,9 @@ class ShellInterface(PersistentInterface, SubprocessInterface):
                             shutdown_command=shutdown_command,
                             cwd=cwd
                         ),
-                        on_receive_from_xterm=on_receive_from_xterm,
+                        on_receive_from_control=on_receive_from_control,
                         on_shutdown=on_shutdown,
-                        on_set_title=on_set_title,
+                        on_set_terminal_title=on_set_terminal_title,
                         cols=cols,
                         rows=rows,
                     )

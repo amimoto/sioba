@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from niceterminal.xterm import XTerm
-from niceterminal.interface import (
+from niceterminal.xterm.interface import XTermInterface
+from niceterminal_interface import (
                     Interface,
                     INTERFACE_STATE_STARTED,
                     INTERFACE_STATE_INITIALIZED
@@ -10,10 +10,10 @@ from niceterminal.interface import (
 from loguru import logger
 
 class CustomInterface(Interface):
-    async def receive_from_xterm(self, data: bytes):
-        await self.send_to_xterm(f"Received {repr(data)} / {int(data[0])} \r\n".encode())
+    async def receive_from_control(self, data: bytes):
+        await self.send_to_control(f"Received {repr(data)} / {int(data[0])} \r\n".encode())
 
-xterm = XTerm(
+xterm = XTermInterface(
             interface=CustomInterface()
         ).classes("w-full")
 

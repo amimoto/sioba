@@ -8,8 +8,8 @@ import termios
 
 from typing import Callable
 
-from niceterminal.interface import Interface, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
-from niceterminal.utils import default_shell
+from niceterminal_interface import Interface, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
+from niceterminal_subprocess.utils import default_shell
 
 from loguru import logger
 
@@ -17,15 +17,19 @@ class PosixInterface(Interface):
     def __init__(self,
                  invoke_command: str,
                  shutdown_command: str = None,
-                 on_send_to_xterm: Callable = None,
-                 on_receive_from_xterm: Callable = None,
+                 on_send_to_control: Callable = None,
+                 on_receive_from_control: Callable = None,
                  on_shutdown: Callable = None,
                  cwd:str=None,
+                 *args,
+                 **kwargs
                  ):
         super().__init__(
-            on_send_to_xterm = on_send_to_xterm,
-            on_receive_from_xterm = on_receive_from_xterm,
+            on_send_to_control = on_send_to_control,
+            on_receive_from_control = on_receive_from_control,
             on_shutdown = on_shutdown,
+            *args,
+            **kwargs
         )
         self.primary_fd, self.subordinate_fd = pty.openpty()
         self.invoke_command = invoke_command
@@ -34,14 +38,19 @@ class PosixInterface(Interface):
         self.process = None
 
     @logger.catch
-    async def launch_interface(self):
+    async def start_interface(self):
         """Starts the shell process asynchronously."""
         shell = default_shell()
         invoke_command = self.invoke_command or shell
 
+        def _preexec():
+            os.setsid()
+            # make subordinate_fd the controlling terminal
+            fcntl.ioctl(self.subordinate_fd, termios.TIOCSCTTY, 0)
+
         self.process = await asyncio.create_subprocess_shell(
             invoke_command,
-            preexec_fn=os.setsid,
+            preexec_fn=_preexec,
             stdin=self.subordinate_fd,
             stdout=self.subordinate_fd,
             stderr=self.subordinate_fd,
@@ -59,16 +68,16 @@ class PosixInterface(Interface):
     def _read_loop(self):
         """Callback when data is available to read from the shell."""
         if data := os.read(self.primary_fd, 10240):
-            asyncio.create_task(self.send_to_xterm(data))
+            asyncio.create_task(self.send_to_control(data))
 
     @logger.catch
-    async def receive_from_xterm(self, data: bytes):
+    async def receive_from_control(self, data: bytes):
         """Writes data to the shell."""
         os.write(self.primary_fd, data)
-        await super().receive_from_xterm(data)
+        await super().receive_from_control(data)
 
     @logger.catch
-    def set_size(self, rows, cols, xpix=0, ypix=0):
+    def set_terminal_size(self, rows, cols, xpix=0, ypix=0):
         """Sets the shell window size."""
         if self.state != INTERFACE_STATE_STARTED:
             return
@@ -85,7 +94,7 @@ class PosixInterface(Interface):
         await self.shutdown()
 
     @logger.catch
-    async def shutdown(self):
+    async def shutdown_interface(self):
         """Shuts down the shell process."""
         logger.info(f"Shutting down process {self.process.pid}")
         if self.state == INTERFACE_STATE_STARTED:

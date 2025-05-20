@@ -150,13 +150,13 @@ from niceterminal.interface import Interface
 
 - **`on_send(on_send: Callable) -> None`**
 - **`on_receive(on_send: Callable) -> None`**
-- **`on_set_title_handle(on_send: Callable) -> None`**
+- **`on_set_terminal_title_handle(on_send: Callable) -> None`**
 - **`on_shutdown(on_send: Callable) -> None`**
 
-- **`set_title(name: str) -> None`**
-- **`set_size(rows: int, cols: int, xpix: int=0, ypix: int=0) -> None`**
-- **`get_screen_display() -> bytes`**
-- **`get_cursor_position() -> tuple[int, int]|None`**
+- **`set_terminal_title(name: str) -> None`**
+- **`set_terminal_size(rows: int, cols: int, xpix: int=0, ypix: int=0) -> None`**
+- **`get_terminal_buffer() -> bytes`**
+- **`get_terminal_cursor_position() -> tuple[int, int]|None`**
 
 Extend `Interface` to suit your needs (local shell, remote connections, serial devices, etc.).
 
@@ -247,7 +247,7 @@ class SerialPortInterface(Interface):
         self.ser = None
 
     @logger.catch
-    async def launch_interface(self):
+    async def start_interface(self):
         """Starts the shell process asynchronously."""
         if self.state != INTERFACE_STATE_INITIALIZED:
             return
