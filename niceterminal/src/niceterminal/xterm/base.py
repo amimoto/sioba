@@ -178,19 +178,21 @@ class XTerm(
 
     def __init__(
         self,
-        config: Optional[TerminalConfig] = None,
         value: str = '',
+        config: Optional[TerminalConfig] = None,
         on_change: Optional[Callable] = None,
         on_close: Optional[Callable] = None,
         **kwargs
     ) -> None:
-        """Initialize the XTerm component.
+        """
+        Initialize the XTerm component.
 
         Args:
-            config: Terminal configuration settings
             value: Initial terminal content
+            config: Terminal configuration settings
             on_change: Callback for content changes
             on_close: Callback for terminal closure
+
             **kwargs: Additional arguments passed to ValueElement
         """
         self.config = config or TerminalConfig()

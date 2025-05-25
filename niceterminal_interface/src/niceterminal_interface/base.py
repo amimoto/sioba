@@ -1,5 +1,5 @@
 import asyncio
-from typing import Callable
+from typing import Callable, TypedDict
 from .errors import InterfaceNotStarted, InterfaceError
 from niceterminal.errors import TerminalClosedError
 import uuid
@@ -264,8 +264,31 @@ class Interface:
 
 class BufferedInterface(Interface):
 
-    scrollback_buffer = None
-    scrollback_buffer_size = 1_000_000
+    scrollback_buffer: list = None
+    scrollback_buffer_size: int = 10_000
+
+    def __init__(self,
+                scrollback_buffer_size: int = 10_000,
+
+                # From superclass
+                on_receive_from_control: Callable = None,
+                on_send_to_control: Callable = None,
+                on_shutdown: Callable = None,
+                on_set_terminal_title: Callable = None,
+                cols: int = 80,
+                rows: int = 24,
+                auto_shutdown: bool = True,
+            ) -> None:
+        self.scrollback_buffer_size = scrollback_buffer_size
+        super().__init__(
+            on_receive_from_control=on_receive_from_control,
+            on_send_to_control=on_send_to_control,
+            on_shutdown=on_shutdown,
+            on_set_terminal_title=on_set_terminal_title,
+            cols=cols,
+            rows=rows,
+            auto_shutdown=auto_shutdown,
+        )
 
     def init_interface(self):
         self.scrollback_buffer = b""
@@ -305,6 +328,7 @@ class EventsScreen(pyte.Screen):
             lines: int,
             on_set_terminal_title: Callable = None,
             scrollback_buffer_size: int = 10_000,
+
         ) -> None:
         self.on_set_terminal_title_handle = on_set_terminal_title
         self.scrollback_buffer = []
@@ -340,11 +364,27 @@ class PersistentInterface(Interface):
     """Wraps an InvokeProcess to provide pyte terminal emulation capabilities"""
 
     def __init__(self,
-                 scrollback_buffer_size: int = 10_000,
-                 *args,
-                 **kwargs) -> None:
+                scrollback_buffer_size: int = 10_000,
+
+                # From superclass
+                on_receive_from_control: Callable = None,
+                on_send_to_control: Callable = None,
+                on_shutdown: Callable = None,
+                on_set_terminal_title: Callable = None,
+                cols: int = 80,
+                rows: int = 24,
+                auto_shutdown: bool = True,
+            ) -> None:
         self.scrollback_buffer_size = scrollback_buffer_size
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            on_receive_from_control=on_receive_from_control,
+            on_send_to_control=on_send_to_control,
+            on_shutdown=on_shutdown,
+            on_set_terminal_title=on_set_terminal_title,
+            cols=cols,
+            rows=rows,
+            auto_shutdown=auto_shutdown,
+        )
 
     def init_interface(self):
         # Initialize pyte screen and stream
@@ -383,7 +423,7 @@ class PersistentInterface(Interface):
             self.stream.feed(data.decode('utf-8', errors='replace'))
 
     @logger.catch
-    def set_terminal_size(self, rows, cols, xpix=0, ypix=0):
+    def set_terminal_size(self, rows: int, cols: int, xpix: int=0, ypix: int=0):
         """Sets the shell window size."""
         super().set_terminal_size(rows=rows, cols=cols, xpix=xpix, ypix=ypix)
         self.screen.resize(lines=rows, columns=cols)
