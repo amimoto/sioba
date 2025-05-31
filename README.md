@@ -1,4 +1,4 @@
-# sioba: A NiceGUI xterm.js Control
+# sioba_nicegui: A NiceGUI xterm.js Control
 
 [![PyPI](https://img.shields.io/pypi/v/sioba.svg)](https://pypi.org/project/sioba/)
 [![License](https://img.shields.io/badge/license-MIT--0-blue.svg)](#license)
@@ -26,12 +26,12 @@ This **WIP** project provides an [xterm.js](https://xtermjs.org/) based terminal
 
 **Library only**:
 ```bash
-pip install sioba
+pip install sioba_nicegui
 ```
 
 **Library + CLI** (installs the `niceterm` command):
 ```bash
-pip install sioba[cli]
+pip install sioba_nicegui
 ```
 
 > **Note**: The CLI offers easy web-based shell access, which can be a security concern. Enable it only if you understand the risks.
@@ -44,7 +44,7 @@ A minimal example to embed a shell terminal in a NiceGUI page:
 
 ```python
 from nicegui import ui
-from sioba.xterm import ShellXTerm
+from sioba_nicegui.xterm import ShellXTerm
 
 # Create a full-page terminal that opens your default shell.
 ShellXTerm().classes("w-full h-full")
@@ -66,7 +66,7 @@ Open your app in the browser. You’ll see a page hosting an interactive shell.
 ### XTerm Class
 
 ```python
-from sioba.xterm import XTerm
+from sioba_nicegui.xterm import XTerm
 ```
 
 **Purpose**:
@@ -88,7 +88,7 @@ from sioba.interface.base import Interface, INTERFACE_STATE_STARTED, INTERFACE_S
 from loguru import logger
 
 from nicegui import ui
-from sioba.xterm import XTerm
+from sioba_nicegui.xterm import XTerm
 
 class EchoInterface(Interface):
     async def receive(self, data: bytes):
@@ -111,7 +111,7 @@ In this simplistic example, whatever the user types is immediately echoed back.
 ### ShellXTerm Subclass
 
 ```python
-from sioba.xterm import ShellXTerm
+from sioba_nicegui.xterm import ShellXTerm
 ```
 
 **Purpose**:
@@ -175,7 +175,7 @@ Basic example:
 
 from nicegui import ui
 from sioba.interface.function import FunctionInterface
-from sioba.xterm import XTerm
+from sioba_nicegui.xterm import XTerm
 
 import time
 import datetime
@@ -236,7 +236,7 @@ from sioba.interface.base import Interface, INTERFACE_STATE_STARTED, INTERFACE_S
 from loguru import logger
 
 from nicegui import ui
-from sioba.xterm import XTerm
+from sioba_nicegui.xterm import XTerm
 
 class SerialPortInterface(Interface):
     def __init__(self, port="/dev/ttyUSB0", baudrate=115200, *args, **kwargs):
@@ -291,7 +291,7 @@ class SerialPortInterface(Interface):
 
 ```python
 from nicegui import ui
-from sioba.xterm import XTerm
+from sioba_nicegui.xterm import XTerm
 
 # Instantiate our custom interface for a specific serial device
 serial_interface = SerialPortInterface(port="COM4", baudrate=115200)
@@ -368,7 +368,7 @@ On startup, logs display the server address and an auto-generated password (if `
 
 ```python
 from nicegui import ui
-from sioba.xterm import ShellXTerm
+from sioba_nicegui.xterm import ShellXTerm
 
 ShellXTerm().classes("w-full h-full")
 

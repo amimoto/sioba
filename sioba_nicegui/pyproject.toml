@@ -1,5 +1,5 @@
 [project]
-name = "sioba"
+name = "sioba-nicegui"
 version = "0.2.20250324"
 description = "A library for building terminal applications with NiceGUI and rich terminal features."
 authors = [
@@ -10,6 +10,7 @@ dependencies = [
     "pyte>=0.8.2",
     "loguru>=0.7.2",
     "janus>=2.0.0",
+    "sioba>=0.2.20250413",
 ]
 requires-python = ">=3.9"
 # readme = "README.md"
@@ -21,14 +22,14 @@ long_description_content_type = "text/markdown"
 
 [tool.pdm]
 distribution = true
-build = { includes = ["src/sioba"] }
+build = { includes = ["src/sioba_nicegui"] }
 
 [build-system]
 requires = ["pdm-backend>=0.12"]
 build-backend = "pdm.backend"
 
 [project.scripts]
-niceterm = "sioba.cli:main [cli]"
+niceterm = "sioba_nicegui.cli:main [cli]"
 
 [project.urls]
 Homepage = "https://github.com/amimoto/sioba"

@@ -1,6 +1,6 @@
 from typing import Callable
 
-from sioba_interface import PersistentInterface
+from sioba import PersistentInterface
 
 from loguru import logger
 

@@ -1,13 +1,12 @@
 [project]
-name = "sioba-interface"
+name = "sioba"
 version = "0.2.20250413"
-description = "Interface framework to bridge between various interfaces and sioba XTerm."
+description = "Simple IO Backend Abstractions: A lightweight framework for unifying subprocess, socket, serial, and custom I/O backends via extensible interface."
 authors = [
     { name = "Aki Mimoto", email = "aki@bako.ca" }
 ]
 dependencies = [
     "nicegui>=2.5.0",
-    "sioba>=0.2.20250209",
     "loguru>=0.7.2",
 ]
 requires-python = ">=3.9"
@@ -19,7 +18,7 @@ long_description_content_type = "text/markdown"
 
 [tool.pdm]
 distribution = true
-build = { includes = ["src/sioba_interface"] }
+build = { includes = ["src/sioba"] }
 
 [overrides]
 sioba = { path = "../sioba", develop = true }

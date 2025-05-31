@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from sioba_interface import FunctionInterface
-from sioba.xterm import XTermInterface
+from sioba import FunctionInterface
+from sioba_nicegui.xterm import XTermInterface
 import asyncio
 
 import time

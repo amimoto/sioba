@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from sioba.xterm.interface import XTermInterface
-from sioba_interface import (
+from sioba_nicegui.xterm.interface import XTermInterface
+from sioba import (
                     Interface,
                     INTERFACE_STATE_STARTED,
                     INTERFACE_STATE_INITIALIZED

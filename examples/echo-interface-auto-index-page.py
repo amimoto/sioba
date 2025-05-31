@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from sioba_interface import EchoInterface
-from sioba.xterm import XTermInterface
+from sioba import EchoInterface
+from sioba_nicegui.xterm import XTermInterface
 import logging
 
 logging.basicConfig(level=logging.DEBUG)

@@ -1,5 +1,5 @@
 from nicegui import ui
-from sioba.xterm import ShellXTerm
+from sioba_nicegui.xterm import ShellXTerm
 
 ShellXTerm().classes("w-full h-full")
 

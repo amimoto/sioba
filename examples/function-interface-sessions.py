@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from nicegui import ui, Client
-from sioba_interface import Interface, FunctionInterface
-from sioba.xterm import XTermInterface
+from sioba import Interface, FunctionInterface
+from sioba_nicegui.xterm import XTermInterface
 
 import time
 import datetime

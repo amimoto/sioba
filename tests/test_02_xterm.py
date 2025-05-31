@@ -5,7 +5,7 @@ from nicegui import ui
 from nicegui.testing import Screen
 from sioba.interface.base import Interface
 
-from sioba.xterm import XTerm
+from sioba_nicegui.xterm import XTerm
 
 def test_page(screen: Screen):
 

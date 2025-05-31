@@ -13,7 +13,7 @@ from nicegui import core, ui
 from nicegui.client import Client
 import weakref
 
-from sioba_interface.base import Interface
+from sioba.base import Interface
 
 from loguru import logger
 

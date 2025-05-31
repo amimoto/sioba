@@ -1,5 +1,5 @@
 from nicegui import ui, app, Client
-from sioba import xterm
+from sioba_nicegui import xterm
 from sioba.utils import generate_id
 
 

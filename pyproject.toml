@@ -5,7 +5,7 @@ distribution = false
 dev = [
     # Local libraries
     "-e file:///${PROJECT_ROOT}/sioba",
-    "-e file:///${PROJECT_ROOT}/sioba_interface",
+    "-e file:///${PROJECT_ROOT}/sioba_nicegui",
     "-e file:///${PROJECT_ROOT}/sioba_subprocess",
     "-e file:///${PROJECT_ROOT}/sioba_app",
 

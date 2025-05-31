@@ -2,7 +2,7 @@
 
 from nicegui import ui
 from sioba_subprocess.interface import ShellInterface
-from sioba.xterm import XTermInterface
+from sioba_nicegui.xterm import XTermInterface
 
 #ShellInterface("cmd.exe")
 iface = ShellInterface("bash")

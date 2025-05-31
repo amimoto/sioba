@@ -1,10 +1,10 @@
 import asyncio
-from typing import Callable, TypedDict
+from typing import Callable
 from .errors import InterfaceNotStarted, InterfaceError
 from sioba.errors import TerminalClosedError
 import uuid
 import pyte
-from typing import Optional, Any, Dict, Generator, Literal
+from typing import Optional, Any, Generator
 from dataclasses import dataclass, asdict
 
 from loguru import logger

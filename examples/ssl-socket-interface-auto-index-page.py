@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from sioba_interface import SocketInterface
-from sioba.xterm import XTermInterface
+from sioba import SocketInterface
+from sioba_nicegui.xterm import XTermInterface
 import ssl
 
 ssl_context = ssl.create_default_context()

@@ -9,7 +9,7 @@ interfaces.
 Example:
     Basic usage with shell interface:
         >>> from nicegui import ui
-        >>> from sioba.xterm import ShellXTerm
+        >>> from sioba_nicegui.xterm import ShellXTerm
         >>>
         >>> term = ShellXTerm()
         >>> term.classes("w-full h-full")
@@ -48,7 +48,7 @@ from nicegui.elements.mixins.disableable_element import DisableableElement
 from nicegui.elements.mixins.value_element import ValueElement
 from nicegui.awaitable_response import AwaitableResponse
 
-from ..errors import TerminalClosedError, ClientDeleted
+from sioba.errors import TerminalClosedError, ClientDeleted
 
 @dataclass
 class TerminalConfig:

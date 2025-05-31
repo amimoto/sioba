@@ -1,6 +1,6 @@
 import asyncio
 
-from sioba import xterm
+from sioba_nicegui import xterm
 from sioba.interface.subprocess import ShellInterface
 
 from loguru import logger
