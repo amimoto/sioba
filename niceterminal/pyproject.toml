@@ -1,5 +1,5 @@
 [project]
-name = "niceterminal"
+name = "sioba"
 version = "0.2.20250324"
 description = "A library for building terminal applications with NiceGUI and rich terminal features."
 authors = [
@@ -21,17 +21,17 @@ long_description_content_type = "text/markdown"
 
 [tool.pdm]
 distribution = true
-build = { includes = ["src/niceterminal"] }
+build = { includes = ["src/sioba"] }
 
 [build-system]
 requires = ["pdm-backend>=0.12"]
 build-backend = "pdm.backend"
 
 [project.scripts]
-niceterm = "niceterminal.cli:main [cli]"
+niceterm = "sioba.cli:main [cli]"
 
 [project.urls]
-Homepage = "https://github.com/amimoto/niceterminal"
-Issues = "https://github.com/amimoto/niceterminal/issues"
+Homepage = "https://github.com/amimoto/sioba"
+Issues = "https://github.com/amimoto/sioba/issues"
 
 

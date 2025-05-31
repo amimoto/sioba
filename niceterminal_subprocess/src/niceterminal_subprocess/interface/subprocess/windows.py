@@ -5,7 +5,7 @@ import subprocess
 
 from typing import Callable
 
-from niceterminal_interface import PersistentInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
+from sioba_interface import PersistentInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
 
 from loguru import logger
 

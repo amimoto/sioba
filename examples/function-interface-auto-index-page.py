@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from niceterminal_interface import FunctionInterface
-from niceterminal.xterm import XTermInterface
+from sioba_interface import FunctionInterface
+from sioba.xterm import XTermInterface
 import asyncio
 
 import time
@@ -30,7 +30,7 @@ xterm = XTermInterface(
 # Make sure static files can be found
 try:
     ui.run(
-        title="NiceTerminal Function Example",
+        title="sioba Function Example",
         port=9000,
         host="0.0.0.0",
         reload=False,

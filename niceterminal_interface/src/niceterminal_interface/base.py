@@ -1,7 +1,7 @@
 import asyncio
 from typing import Callable, TypedDict
 from .errors import InterfaceNotStarted, InterfaceError
-from niceterminal.errors import TerminalClosedError
+from sioba.errors import TerminalClosedError
 import uuid
 import pyte
 from typing import Optional, Any, Dict, Generator, Literal

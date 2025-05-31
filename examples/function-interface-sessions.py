@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from nicegui import ui, Client
-from niceterminal_interface import Interface, FunctionInterface
-from niceterminal.xterm import XTermInterface
+from sioba_interface import Interface, FunctionInterface
+from sioba.xterm import XTermInterface
 
 import time
 import datetime
@@ -38,7 +38,7 @@ async def index(client: Client):
 # Make sure static files can be found
 try:
     ui.run(
-        title="NiceTerminal Function Example",
+        title="sioba Function Example",
         port=9000,
         host="0.0.0.0",
         reload=False,

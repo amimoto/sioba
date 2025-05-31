@@ -1,11 +1,11 @@
-from niceterminal.xterm import XTerm, TerminalConfig
-from niceterminal_subprocess.interface import ShellInterface, INVOKE_COMMAND
+from sioba.xterm import XTerm, TerminalConfig
+from sioba_subprocess.interface import ShellInterface, INVOKE_COMMAND
 from typing import Callable, Optional
 """
 Example:
     Basic usage with shell interface:
         >>> from nicegui import ui
-        >>> from niceterminal.xterm import ShellXTerm
+        >>> from sioba.xterm import ShellXTerm
         >>>
         >>> term = ShellXTerm()
         >>> term.classes("w-full h-full")

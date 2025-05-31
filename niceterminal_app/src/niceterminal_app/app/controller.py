@@ -1,6 +1,6 @@
 from nicegui import Client
-from niceterminal import xterm
-from niceterminal.utils import generate_id
+from sioba import xterm
+from sioba.utils import generate_id
 import asyncio
 
 from .ui import TerminalUI

@@ -8,8 +8,8 @@ import termios
 
 from typing import Callable
 
-from niceterminal_interface import PersistentInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
-from niceterminal_subprocess.utils import default_shell
+from sioba_interface import PersistentInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
+from sioba_subprocess.utils import default_shell
 
 from loguru import logger
 

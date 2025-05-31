@@ -4,10 +4,10 @@ distribution = false
 [tool.pdm.dev-dependencies]
 dev = [
     # Local libraries
-    "-e file:///${PROJECT_ROOT}/niceterminal",
-    "-e file:///${PROJECT_ROOT}/niceterminal_interface",
-    "-e file:///${PROJECT_ROOT}/niceterminal_subprocess",
-    "-e file:///${PROJECT_ROOT}/niceterminal_app",
+    "-e file:///${PROJECT_ROOT}/sioba",
+    "-e file:///${PROJECT_ROOT}/sioba_interface",
+    "-e file:///${PROJECT_ROOT}/sioba_subprocess",
+    "-e file:///${PROJECT_ROOT}/sioba_app",
 
     # Testing dependencies for the development environment
     "pytest>=8.3.4",
@@ -33,7 +33,7 @@ license = {text = "MIT"}
 addopts = "--driver Chrome"
 asyncio_mode = "auto"
 testpaths = [
-    "niceterminal/tests"
+    "sioba/tests"
 ]
 asyncio_default_fixture_loop_scope = "function"
 

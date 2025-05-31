@@ -1,7 +1,7 @@
 import asyncio
 
-from niceterminal import xterm
-from niceterminal.interface.subprocess import ShellInterface
+from sioba import xterm
+from sioba.interface.subprocess import ShellInterface
 
 from loguru import logger
 

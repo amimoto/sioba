@@ -1,6 +1,6 @@
-# NiceTerminal: A NiceGUI xterm.js Control
+# sioba: A NiceGUI xterm.js Control
 
-[![PyPI](https://img.shields.io/pypi/v/niceterminal.svg)](https://pypi.org/project/niceterminal/)
+[![PyPI](https://img.shields.io/pypi/v/sioba.svg)](https://pypi.org/project/sioba/)
 [![License](https://img.shields.io/badge/license-MIT--0-blue.svg)](#license)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
 
@@ -26,12 +26,12 @@ This **WIP** project provides an [xterm.js](https://xtermjs.org/) based terminal
 
 **Library only**:
 ```bash
-pip install niceterminal
+pip install sioba
 ```
 
 **Library + CLI** (installs the `niceterm` command):
 ```bash
-pip install niceterminal[cli]
+pip install sioba[cli]
 ```
 
 > **Note**: The CLI offers easy web-based shell access, which can be a security concern. Enable it only if you understand the risks.
@@ -44,7 +44,7 @@ A minimal example to embed a shell terminal in a NiceGUI page:
 
 ```python
 from nicegui import ui
-from niceterminal.xterm import ShellXTerm
+from sioba.xterm import ShellXTerm
 
 # Create a full-page terminal that opens your default shell.
 ShellXTerm().classes("w-full h-full")
@@ -58,7 +58,7 @@ Open your app in the browser. You’ll see a page hosting an interactive shell.
 
 ## Library Overview
 
-`niceterminal` is built around two key abstractions:
+`sioba` is built around two key abstractions:
 
 1. **XTerm** – A NiceGUI element based on xterm.js, rendering an interactive terminal in the browser.
 2. **Interface** – An abstract base class specifying how terminal input/output is processed on the Python side.
@@ -66,7 +66,7 @@ Open your app in the browser. You’ll see a page hosting an interactive shell.
 ### XTerm Class
 
 ```python
-from niceterminal.xterm import XTerm
+from sioba.xterm import XTerm
 ```
 
 **Purpose**:
@@ -84,11 +84,11 @@ from niceterminal.xterm import XTerm
 
 **Example**:
 ```python
-from niceterminal.interface.base import Interface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED
+from sioba.interface.base import Interface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED
 from loguru import logger
 
 from nicegui import ui
-from niceterminal.xterm import XTerm
+from sioba.xterm import XTerm
 
 class EchoInterface(Interface):
     async def receive(self, data: bytes):
@@ -111,7 +111,7 @@ In this simplistic example, whatever the user types is immediately echoed back.
 ### ShellXTerm Subclass
 
 ```python
-from niceterminal.xterm import ShellXTerm
+from sioba.xterm import ShellXTerm
 ```
 
 **Purpose**:
@@ -127,7 +127,7 @@ ShellXTerm().classes("w-full h-full")
 ### Interface Base Class
 
 ```python
-from niceterminal.interface import Interface
+from sioba.interface import Interface
 ```
 
 **Purpose**:
@@ -174,8 +174,8 @@ Basic example:
 #!/usr/bin/env python
 
 from nicegui import ui
-from niceterminal.interface.function import FunctionInterface
-from niceterminal.xterm import XTerm
+from sioba.interface.function import FunctionInterface
+from sioba.xterm import XTerm
 
 import time
 import datetime
@@ -201,7 +201,7 @@ xterm = XTerm(
 # Make sure static files can be found
 try:
     ui.run(
-        title="NiceTerminal Function Example",
+        title="sioba Function Example",
         port=9000,
         host="0.0.0.0",
         reload=False,
@@ -232,11 +232,11 @@ Below is an example of using [pyserial](https://pyserial.readthedocs.io/en/lates
 ```python
 import threading
 import serial
-from niceterminal.interface.base import Interface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED
+from sioba.interface.base import Interface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED
 from loguru import logger
 
 from nicegui import ui
-from niceterminal.xterm import XTerm
+from sioba.xterm import XTerm
 
 class SerialPortInterface(Interface):
     def __init__(self, port="/dev/ttyUSB0", baudrate=115200, *args, **kwargs):
@@ -291,7 +291,7 @@ class SerialPortInterface(Interface):
 
 ```python
 from nicegui import ui
-from niceterminal.xterm import XTerm
+from sioba.xterm import XTerm
 
 # Instantiate our custom interface for a specific serial device
 serial_interface = SerialPortInterface(port="COM4", baudrate=115200)
@@ -318,7 +318,7 @@ Now anything typed in the terminal is sent to the specified serial port, and any
 Installing with `[cli]` provides the `niceterm` command, a convenient multi-terminal web interface:
 
 ```text
-NiceTerminal Web Interface
+sioba Web Interface
 
 Usage:
     niceterm [options]
@@ -362,13 +362,13 @@ On startup, logs display the server address and an auto-generated password (if `
 
 | Authentication Screen                        | Terminal Dashboard                          |
 |---------------------------------------------|---------------------------------------------|
-| ![](https://raw.githubusercontent.com/amimoto/niceterminal/refs/heads/main/niceterminal-authentication.png) | ![](https://raw.githubusercontent.com/amimoto/niceterminal/refs/heads/main/niceterminal-webterminal.png) |
+| ![](https://raw.githubusercontent.com/amimoto/sioba/refs/heads/main/sioba-authentication.png) | ![](https://raw.githubusercontent.com/amimoto/sioba/refs/heads/main/sioba-webterminal.png) |
 
 **Simple auto-index page usage**:
 
 ```python
 from nicegui import ui
-from niceterminal.xterm import ShellXTerm
+from sioba.xterm import ShellXTerm
 
 ShellXTerm().classes("w-full h-full")
 
@@ -377,7 +377,7 @@ ui.run()
 
 Which yields:
 
-![](https://raw.githubusercontent.com/amimoto/niceterminal/refs/heads/main/niceterminal.png)
+![](https://raw.githubusercontent.com/amimoto/sioba/refs/heads/main/sioba.png)
 
 ---
 
@@ -392,8 +392,8 @@ Which yields:
 
 ## License
 
-This project is released under the [MIT-0 License](https://github.com/amimoto/niceterminal/blob/main/LICENSE). You’re free to copy, modify, and distribute this software with no attribution required.
+This project is released under the [MIT-0 License](https://github.com/amimoto/sioba/blob/main/LICENSE). You’re free to copy, modify, and distribute this software with no attribution required.
 
 ---
 
-_If you have suggestions, bug reports, or feature requests, please open an [issue on GitHub](https://github.com/amimoto/niceterminal/issues)._
+_If you have suggestions, bug reports, or feature requests, please open an [issue on GitHub](https://github.com/amimoto/sioba/issues)._

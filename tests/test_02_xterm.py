@@ -3,9 +3,9 @@ import pytest
 from nicegui import ui
 
 from nicegui.testing import Screen
-from niceterminal.interface.base import Interface
+from sioba.interface.base import Interface
 
-from niceterminal.xterm import XTerm
+from sioba.xterm import XTerm
 
 def test_page(screen: Screen):
 
@@ -29,7 +29,7 @@ def test_page(screen: Screen):
     screen.should_contain('XTerm Test!')
 
     # Click on the terminal
-    elements = screen.find_all_by_class('niceterminal-xtermjs')
+    elements = screen.find_all_by_class('sioba-xtermjs')
     screen.click_at_position(elements[0], 20, 100)
 
     # Send it some data

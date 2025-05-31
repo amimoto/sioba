@@ -9,7 +9,7 @@ interfaces.
 Example:
     Basic usage with shell interface:
         >>> from nicegui import ui
-        >>> from niceterminal.xterm import ShellXTerm
+        >>> from sioba.xterm import ShellXTerm
         >>>
         >>> term = ShellXTerm()
         >>> term.classes("w-full h-full")
@@ -174,7 +174,7 @@ class XTerm(
             ValueElement,
             DisableableElement,
             component = 'xterm.js',
-            default_classes = 'niceterminal-xtermjs',
+            default_classes = 'sioba-xtermjs',
         ):
     """XTerm.js integration for NiceGUI.
 

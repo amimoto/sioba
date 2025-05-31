@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from niceterminal_interface import SocketInterface
-from niceterminal.xterm import XTermInterface
+from sioba_interface import SocketInterface
+from sioba.xterm import XTermInterface
 import ssl
 
 ssl_context = ssl.create_default_context()
@@ -19,7 +19,7 @@ xterm = XTermInterface(socket_interface).classes("w-full")
 # Make sure static files can be found
 try:
     ui.run(
-        title="NiceTerminal Function Example",
+        title="sioba Function Example",
         port=9000,
         host="0.0.0.0",
         reload=False,

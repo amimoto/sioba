@@ -6,8 +6,8 @@ import pytest_asyncio
 
 from loguru import logger
 
-from niceterminal.errors import InterfaceNotStarted
-from niceterminal.interface.base import ( Interface,
+from sioba.errors import InterfaceNotStarted
+from sioba.interface.base import ( Interface,
                                             INTERFACE_STATE_STARTED,
                                             INTERFACE_STATE_INITIALIZED,
                                             INTERFACE_STATE_SHUTDOWN

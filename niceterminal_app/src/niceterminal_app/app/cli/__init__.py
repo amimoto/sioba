@@ -1,5 +1,5 @@
 """
-NiceTerminal Web Interface
+sioba Web Interface
 
 Usage:
     niceterm [options]
@@ -22,9 +22,9 @@ Options:
                                     - tab: only for tab
 
 Examples:
-  niceterminal --host 0.0.0.0 --port 9000
-  niceterminal --app 'python3' --no-auth
-  niceterminal --password secret123
+  sioba --host 0.0.0.0 --port 9000
+  sioba --app 'python3' --no-auth
+  sioba --password secret123
 """
 VERSION = "0.1.0"
 
@@ -42,7 +42,7 @@ from loguru import logger
 
 from nicegui import ui, app, Client
 
-from niceterminal.app import TerminalController
+from sioba.app import TerminalController
 
 CONTROLLERS = {}
 OPTS = {}
@@ -183,7 +183,7 @@ def main():
         password = hashlib.pbkdf2_hmac(
                             "sha256",
                             os.urandom(32),
-                            b"niceterminal",
+                            b"sioba",
                             100_000
                         ).hex()
         OPTS["--password"] = password
@@ -193,7 +193,7 @@ def main():
     storage_secret = hashlib.pbkdf2_hmac(
                             "sha256",
                             storage_secret.encode("utf-8"),
-                            b"niceterminal",
+                            b"sioba",
                             100_000
                         )
 

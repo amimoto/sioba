@@ -1,13 +1,13 @@
 [project]
-name = "niceterminal_subprocess"
+name = "sioba_subprocess"
 version = "0.2.20250323"
-description = "Provides shell terminals for niceterminal, a library for building terminal applications with NiceGUI and rich terminal features."
+description = "Provides shell terminals for sioba, a library for building terminal applications with NiceGUI and rich terminal features."
 authors = [
     { name = "Aki Mimoto", email = "aki@bako.ca" }
 ]
 dependencies = [
     "nicegui>=2.5.0",
-    "niceterminal>=0.2.20250209",
+    "sioba>=0.2.20250209",
     "loguru>=0.7.2",
     "pywinpty>=2.0.4; sys_platform == 'win32'",
 ]
@@ -20,18 +20,18 @@ long_description_content_type = "text/markdown"
 
 [tool.pdm]
 distribution = true
-build = { includes = ["src/niceterminal_subprocess"] }
+build = { includes = ["src/sioba_subprocess"] }
 
 [overrides]
-niceterminal = { path = "../niceterminal", develop = true }
+sioba = { path = "../sioba", develop = true }
 
 [build-system]
 requires = ["pdm-backend>=0.12"]
 build-backend = "pdm.backend"
 
 [project.urls]
-Homepage = "https://github.com/amimoto/niceterminal"
-Issues = "https://github.com/amimoto/niceterminal/issues"
+Homepage = "https://github.com/amimoto/sioba"
+Issues = "https://github.com/amimoto/sioba/issues"
 
 [tool.pytest.ini_options]
 addopts = "--driver Chrome"

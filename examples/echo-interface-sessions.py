@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from nicegui import ui, Client
-from niceterminal_interface import EchoInterface
-from niceterminal.xterm import XTermInterface
+from sioba_interface import EchoInterface
+from sioba.xterm import XTermInterface
 import gc
 
 class TestClass(ui.label):
@@ -23,7 +23,7 @@ async def gc_page(client: Client):
 # Make sure static files can be found
 try:
     ui.run(
-        title="NiceTerminal Function Example",
+        title="sioba Function Example",
         port=9000,
         host="0.0.0.0",
         reload=False,

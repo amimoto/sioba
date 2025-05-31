@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from niceterminal.xterm.interface import XTermInterface
-from niceterminal_interface import (
+from sioba.xterm.interface import XTermInterface
+from sioba_interface import (
                     Interface,
                     INTERFACE_STATE_STARTED,
                     INTERFACE_STATE_INITIALIZED
@@ -20,7 +20,7 @@ xterm = XTermInterface(
 # Make sure static files can be found
 try:
     ui.run(
-        title="NiceTerminal Function Example",
+        title="sioba Function Example",
         port=9000,
         host="0.0.0.0",
         reload=False,

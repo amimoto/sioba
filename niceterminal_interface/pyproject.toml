@@ -1,13 +1,13 @@
 [project]
-name = "niceterminal-interface"
+name = "sioba-interface"
 version = "0.2.20250413"
-description = "Interface framework to bridge between various interfaces and niceterminal XTerm."
+description = "Interface framework to bridge between various interfaces and sioba XTerm."
 authors = [
     { name = "Aki Mimoto", email = "aki@bako.ca" }
 ]
 dependencies = [
     "nicegui>=2.5.0",
-    "niceterminal>=0.2.20250209",
+    "sioba>=0.2.20250209",
     "loguru>=0.7.2",
 ]
 requires-python = ">=3.9"
@@ -19,18 +19,18 @@ long_description_content_type = "text/markdown"
 
 [tool.pdm]
 distribution = true
-build = { includes = ["src/niceterminal_interface"] }
+build = { includes = ["src/sioba_interface"] }
 
 [overrides]
-niceterminal = { path = "../niceterminal", develop = true }
+sioba = { path = "../sioba", develop = true }
 
 [build-system]
 requires = ["pdm-backend>=0.12"]
 build-backend = "pdm.backend"
 
 [project.urls]
-Homepage = "https://github.com/amimoto/niceterminal"
-Issues = "https://github.com/amimoto/niceterminal/issues"
+Homepage = "https://github.com/amimoto/sioba"
+Issues = "https://github.com/amimoto/sioba/issues"
 
 [tool.pytest.ini_options]
 addopts = "--driver Chrome"

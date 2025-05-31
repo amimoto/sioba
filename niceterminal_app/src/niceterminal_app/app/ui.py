@@ -1,6 +1,6 @@
 from nicegui import ui, app, Client
-from niceterminal import xterm
-from niceterminal.utils import generate_id
+from sioba import xterm
+from sioba.utils import generate_id
 
 
 class TerminalUI:
