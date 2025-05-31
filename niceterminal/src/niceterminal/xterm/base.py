@@ -23,13 +23,23 @@ Example:
         ... )
 """
 
+import json
 import asyncio
 import base64
-from dataclasses import dataclass, field
+import copy
+from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Callable, Set, Literal, Dict, Any
+from typing import (
+    Optional,
+    Callable,
+    Set,
+    Literal,
+    Dict,
+    Any,
+    Generator
+)
 
 from loguru import logger
 from nicegui import background_tasks, ui, core
@@ -42,97 +52,105 @@ from ..errors import TerminalClosedError, ClientDeleted
 
 @dataclass
 class TerminalConfig:
-    """Configuration settings for XTerm terminal.
+    rows: Optional[int] = None
+    cols: Optional[int] = None
+    term_type: Optional[str] = None
+    scrollback: Optional[int] = None
+    encoding: Optional[str] = None
+    convertEol: Optional[bool] = None
 
-    Attributes:
-        rows (int): Number of rows in the terminal.
-        cols (int): Number of columns in the terminal.
-        term_type (str): Terminal type (default: 'xterm-256color').
-        scrollback (int): Number of lines retained when scrolling.
-        encoding (str): Character encoding for terminal I/O.
-        convertEol (bool): Convert new lines to CRLF.
-        allowProposedApi (bool): Allow experimental APIs.
-        allowTransparency (Optional[bool]): Enable transparent background.
-        altClickMovesCursor (bool): Move cursor with Alt+Click.
-        cursorBlink (bool): Cursor blinking enabled.
-        cursorInactiveStyle (Optional[Literal['outline', 'block', 'bar', 'underline', 'none']]): Cursor style when inactive.
-        cursorStyle (Literal['block', 'underline', 'bar']): Active cursor style.
-        cursorWidth (Optional[int]): Cursor width in pixels.
-        customGlyphs (bool): Use custom glyphs for special characters.
-        disableStdin (bool): Disable standard input.
-        drawBoldTextInBrightColors (bool): Render bold text in bright colors.
-        fastScrollModifier (Optional[Literal['none', 'alt', 'ctrl', 'shift']]): Modifier key for fast scrolling.
-        fastScrollSensitivity (Optional[int]): Speed multiplier for fast scrolling.
-        fontFamily (str): Font family for rendering text.
-        fontSize (int): Font size for terminal text.
-        fontWeight (Optional[str]): Font weight for regular text.
-        fontWeightBold (Optional[str]): Font weight for bold text.
-        ignoreBracketedPasteMode (bool): Ignore bracketed paste sequences.
-        letterSpacing (Optional[int]): Spacing between characters.
-        lineHeight (Optional[float]): Line height for terminal text.
-        logLevel (Literal['trace', 'debug', 'info', 'warn', 'error', 'off']): Logging verbosity level.
-        macOptionClickForcesSelection (bool): Force selection on macOS option-click.
-        macOptionIsMeta (bool): Treat macOS option as meta key.
-        minimumContrastRatio (Optional[float]): Minimum contrast ratio for accessibility.
-        overviewRulerWidth (Optional[int]): Width of overview ruler in pixels.
-        rescaleOverlappingGlyphs (bool): Rescale glyphs to prevent overlap.
-        rightClickSelectsWord (bool): Select word on right-click.
-        screenReaderMode (bool): Enable support for screen readers.
-        scrollOnUserInput (bool): Scroll to bottom on user input.
-        scrollSensitivity (Optional[int]): Sensitivity for scrolling.
-        smoothScrollDuration (Optional[int]): Duration for smooth scrolling (ms).
-        tabStopWidth (int): Number of spaces per tab stop.
-        theme (Optional[Dict[str, Any]]): Terminal color theme.
-        windowsMode (bool): Enable Windows-specific mode adjustments.
-        wordSeparator (str): Characters used as word separators.
-    """
-
-    rows: int = 24
-    cols: int = 80
-    term_type: str = 'xterm-256color'
-    scrollback: int = 1000
-    encoding: str = 'utf-8'
-    convertEol: bool = True
-
-    allowProposedApi: bool = False
+    allowProposedApi: Optional[bool] = None
     allowTransparency: Optional[bool] = None
-    altClickMovesCursor: bool = True
-    cursorBlink: bool = False
-    cursorInactiveStyle: Optional[Literal['outline', 'block', 'bar', 'underline', 'none']] = 'outline'
-    cursorStyle: Literal['block', 'underline', 'bar'] = 'block'
+    altClickMovesCursor: Optional[bool] = None
+    cursorBlink: Optional[bool] = None
+    cursorInactiveStyle: Optional[
+        Literal['outline', 'block', 'bar', 'underline', 'none']
+    ] = None
+    cursorStyle: Optional[Literal['block', 'underline', 'bar']] = None
     cursorWidth: Optional[int] = None
-    customGlyphs: bool = True
-    disableStdin: bool = False
-    drawBoldTextInBrightColors: bool = True
-    fastScrollModifier: Optional[Literal['none', 'alt', 'ctrl', 'shift']] = 'alt'
-    fastScrollSensitivity: Optional[int] = 5
-    fontFamily: str = 'monospace'
-    fontSize: int = 14
-    fontWeight: Optional[str] = 'normal'
-    fontWeightBold: Optional[str] = 'bold'
-    ignoreBracketedPasteMode: bool = False
+    customGlyphs: Optional[bool] = None
+    disableStdin: Optional[bool] = None
+    drawBoldTextInBrightColors: Optional[bool] = None
+    fastScrollModifier: Optional[Literal['none', 'alt', 'ctrl', 'shift']] = None
+    fastScrollSensitivity: Optional[int] = None
+    fontFamily: Optional[str] = None
+    fontSize: Optional[int] = None
+    fontWeight: Optional[str] = None
+    fontWeightBold: Optional[str] = None
+    ignoreBracketedPasteMode: Optional[bool] = None
     letterSpacing: Optional[int] = None
     lineHeight: Optional[float] = None
-    logLevel: Literal['trace', 'debug', 'info', 'warn', 'error', 'off'] = 'info'
-    macOptionClickForcesSelection: bool = False
-    macOptionIsMeta: bool = False
-    minimumContrastRatio: Optional[float] = 1
+    logLevel: Optional[
+        Literal['trace', 'debug', 'info', 'warn', 'error', 'off']
+    ] = None
+    macOptionClickForcesSelection: Optional[bool] = None
+    macOptionIsMeta: Optional[bool] = None
+    minimumContrastRatio: Optional[float] = None
     overviewRulerWidth: Optional[int] = None
-    rescaleOverlappingGlyphs: bool = False
-    rightClickSelectsWord: bool = False
-    screenReaderMode: bool = False
-    scrollOnUserInput: bool = True
-    scrollSensitivity: Optional[int] = 1
-    smoothScrollDuration: Optional[int] = 0
-    tabStopWidth: int = 8
-    theme: Optional[Dict[str, Any]] = field(default_factory=dict)
-    windowsMode: bool = False
-    wordSeparator: str = " \t\n()[]{}',\""
+    rescaleOverlappingGlyphs: Optional[bool] = None
+    rightClickSelectsWord: Optional[bool] = None
+    screenReaderMode: Optional[bool] = None
+    scrollOnUserInput: Optional[bool] = None
+    scrollSensitivity: Optional[int] = None
+    smoothScrollDuration: Optional[int] = None
+    tabStopWidth: Optional[int] = None
+    theme: Optional[Dict[str, Any]] = None
+    windowsMode: Optional[bool] = None
+    wordSeparator: Optional[str] = None
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert dataclass instance to dictionary for use with xterm.js."""
-        return {k: v for k, v in self.__dict__.items() if v is not None}
+    def items(self) -> Generator[tuple[str, Any], None, None]:
+        """Return all keys and values."""
+        for k, v in asdict(self).items():
+            yield (k, v)
 
+    def update(self, options: "TerminalConfig") -> None:
+        """Update the configuration with another TerminalConfig instance."""
+        for k, v in asdict(options).items():
+            if v is not None:
+                setattr(self, k, v)
+
+    def copy(self) -> "TerminalConfig":
+        """Return a copy of the configuration."""
+        return TerminalConfig(**asdict(self))
+
+CONFIG_DEFAULTS = TerminalConfig(
+    rows=24,
+    cols=80,
+    term_type="xterm-256color",
+    scrollback=1000,
+    encoding="utf-8",
+    convertEol=True,
+
+    allowProposedApi=False,
+    altClickMovesCursor=True,
+    cursorBlink=False,
+    cursorInactiveStyle="outline",
+    cursorStyle="block",
+    customGlyphs=True,
+    disableStdin=False,
+    drawBoldTextInBrightColors=True,
+    fastScrollModifier="alt",
+    fastScrollSensitivity=5,
+    fontFamily="monospace",
+    fontSize=14,
+    fontWeight="normal",
+    fontWeightBold="bold",
+    ignoreBracketedPasteMode=False,
+    logLevel="info",
+    macOptionClickForcesSelection=False,
+    macOptionIsMeta=False,
+    minimumContrastRatio=1,
+    rescaleOverlappingGlyphs=False,
+    rightClickSelectsWord=False,
+    screenReaderMode=False,
+    scrollOnUserInput=True,
+    scrollSensitivity=1,
+    smoothScrollDuration=0,
+    tabStopWidth=8,
+    theme={},                       # empty dict by default
+    windowsMode=False,
+    wordSeparator=" \t\n()[]{}',\""
+)
 
 class TerminalState(Enum):
     """Possible states of the terminal."""
@@ -172,6 +190,8 @@ class XTerm(
         metadata: Terminal session metadata
     """
 
+    config: TerminalConfig = None
+
     def __getattribute__(self, name):
         #print(f"xterm.js: {name}")
         return super().__getattribute__(name)
@@ -195,7 +215,9 @@ class XTerm(
 
             **kwargs: Additional arguments passed to ValueElement
         """
-        self.config = config or TerminalConfig()
+        self.config = CONFIG_DEFAULTS.copy()
+        if config is not None:
+            self.config.update(config) if config else None
         self.state = TerminalState.INITIALIZING
         self.metadata = TerminalMetadata()
         self.on_close_callback = on_close
@@ -293,3 +315,33 @@ class XTerm(
 
         except Exception as e:
             logger.error(f"Failed to sync with frontend: {e}")
+
+    def set_option(self, option, value) -> None:
+        if value is None:
+            return
+        with self:
+            json_value = json.dumps(value)
+            ui.run_javascript(
+                f"runMethod({self.id}, 'setOption', ['{option}', {json_value}]);"
+            )
+
+    def sync_config(self) -> None:
+        """Synchronize the terminal configuration with the frontend.
+
+        This method updates the terminal's configuration settings in the
+        frontend, such as cursor visibility and other metadata.
+
+        Raises:
+            Exception: Logs any errors that occur during synchronization
+        """
+        if core.loop is None or not self._interface:
+            logger.warning("No event loop available for terminal config sync")
+            return
+
+        try:
+            for k, v in self.config.items():
+                self.set_option(k, v)
+        except Exception as e:
+            logger.error(f"Failed to sync config with frontend: {e}")
+
+

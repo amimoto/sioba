@@ -8,19 +8,20 @@ import termios
 
 from typing import Callable
 
-from niceterminal_interface import Interface, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
+from niceterminal_interface import PersistentInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
 from niceterminal_subprocess.utils import default_shell
 
 from loguru import logger
 
-class PosixInterface(Interface):
+class PosixInterface(PersistentInterface):
     def __init__(self,
                  invoke_command: str,
                  shutdown_command: str = None,
+                 cwd:str=None,
+
                  on_send_to_control: Callable = None,
                  on_receive_from_control: Callable = None,
                  on_shutdown: Callable = None,
-                 cwd:str=None,
                  *args,
                  **kwargs
                  ):

@@ -4,6 +4,8 @@ from .errors import InterfaceNotStarted, InterfaceError
 from niceterminal.errors import TerminalClosedError
 import uuid
 import pyte
+from typing import Optional, Any, Dict, Generator, Literal
+from dataclasses import dataclass, asdict
 
 from loguru import logger
 
@@ -17,6 +19,35 @@ INTERFACE_LOOP = None
 ###########################################################
 # Basic Interface Class that provides what XTerm expects
 ###########################################################
+
+@dataclass
+class InterfaceConfig:
+    rows: Optional[int] = None
+    cols: Optional[int] = None
+    encoding: Optional[str] = None
+    convertEol: Optional[bool] = None
+
+    def items(self) -> Generator[tuple[str, Any], None, None]:
+        """Return all keys and values."""
+        for k, v in asdict(self).items():
+            yield (k, v)
+
+    def update(self, options: "InterfaceConfig") -> None:
+        """Update the configuration with another TerminalConfig instance."""
+        for k, v in asdict(options).items():
+            if v is not None:
+                setattr(self, k, v)
+
+    def copy(self) -> "InterfaceConfig":
+        """Return a copy of the configuration."""
+        return InterfaceConfig(**asdict(self))
+
+DEFAULT_CONFIG = InterfaceConfig(
+    rows=24,
+    cols=80,
+    encoding="utf-8",
+    convertEol=False,
+)
 
 class Interface:
     """ Interface is like the controller that abstracts the IO layer to the GUI layer.
@@ -37,8 +68,8 @@ class Interface:
 
     """
 
-    # Convert \n to include \r\n as well
-    convert_eol: bool = True
+    default_config: InterfaceConfig = DEFAULT_CONFIG.copy()
+    reference_count: int = 0
 
     #######################################
     # Basic lifecycling handling
@@ -54,9 +85,11 @@ class Interface:
                  auto_shutdown: bool = True,
                  ) -> None:
 
+        print(f"Initializing {self}")
         self.id = str(uuid.uuid4())
         self.title = ""
         self.reference_count = 0
+        print(f"Created {self}.reference_count")
 
         self._on_receive_from_control_callbacks = set()
         self._on_send_from_xterm_callbacks = set()
@@ -559,3 +592,6 @@ class PersistentInterface(Interface):
     def get_terminal_cursor_position(self) -> tuple:
         """Get the current cursor position"""
         return (self.screen.cursor.y, self.screen.cursor.x)
+
+
+

@@ -1,7 +1,5 @@
 export default {
-  template: `
-    <div class="p-0 m-0 bg-black"></div>
-  `,
+  template: `<div class="p-0 m-0 bg-black"></div>`,
   props: {
     value: String,
     options: Object,
@@ -37,6 +35,19 @@ export default {
         this.write(data);
       }
     },
+    setOption(name, value) {
+      if (this.term) {
+        // Ignore rows and cols
+        if (value === null || value === undefined) {
+          console.warn("Option value is undefined", name, value);
+          return;
+        }
+        if (name === 'rows' || name === 'cols') {
+          return;
+        }
+        this.term.options[name] = value;
+      }
+    },
     fit() {
       if (this.term && this.fitAddon) {
         this.fitAddon.fit();
@@ -70,7 +81,7 @@ export default {
     await this.$nextTick(); // Wait for window.path_prefix to be set
 
     // Dynamically import xterm.js and addons
-    const {Terminal, FitAddon, SearchAddon, WebLinksAddon, AttachAddon, ClipboardAddon } = await import(window.path_prefix + `${this.resource_path}/xterm.js`);
+    const {Terminal, FitAddon, SearchAddon, WebLinksAddon, AttachAddon, ClipboardAddon} = await import(window.path_prefix + `${this.resource_path}/xterm.js`);
 
     let options = {
       cursorBlink: true,
@@ -88,7 +99,7 @@ export default {
 
     console.log(
       "Terminal options",
-      this.options
+      options
     )
 
     this.term = new Terminal(options);
@@ -130,7 +141,6 @@ export default {
     });
 
     this.term.onResize((e) => {
-      console.log("Terminal resized", e.cols, e.rows);
       this.$emit('resize', e, socket.id)
     });
 
@@ -149,7 +159,7 @@ export default {
     // Write initial value
     if (this.value) {
       this.term.write(this.value);
-    }
+    };
 
     // Initial fit
     this.fit();
@@ -169,6 +179,8 @@ export default {
     }, socket.id);
 
     console.log("Terminal mounted", this.term.cols, this.term.rows, this);
+
+    window.terminal = this.term; // For debugging purposes
 
   },
   beforeDestroy() {

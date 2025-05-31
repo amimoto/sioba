@@ -16,31 +16,37 @@ except ImportError as e:
     except ImportError as e:
         raise ImportError("No suitable subprocess interface found")
 
-class ShellInterface(PersistentInterface, SubprocessInterface):
-    pass
-    '''
+class ShellInterface(SubprocessInterface):
     @logger.catch
     def __init__(
                 self,
                 invoke_command: str = INVOKE_COMMAND,
                 shutdown_command: str = None,
+
+                scrollback_buffer_size: int = 10_000,
+
+                # From superclass
                 on_receive_from_control: Callable = None,
+                on_send_to_control: Callable = None,
                 on_shutdown: Callable = None,
                 on_set_terminal_title: Callable = None,
-                cwd: str = None,
                 cols: int = 80,
                 rows: int = 24,
+                auto_shutdown: bool = True,
+ 
             ):
         super().__init__(
-                        SubprocessInterface(
-                            invoke_command=invoke_command,
-                            shutdown_command=shutdown_command,
-                            cwd=cwd
-                        ),
-                        on_receive_from_control=on_receive_from_control,
-                        on_shutdown=on_shutdown,
-                        on_set_terminal_title=on_set_terminal_title,
-                        cols=cols,
-                        rows=rows,
-                    )
-    '''
+                invoke_command = invoke_command,
+                shutdown_command = shutdown_command,
+
+                scrollback_buffer_size = scrollback_buffer_size,
+
+                # From superclass
+                on_receive_from_control = on_receive_from_control,
+                on_send_to_control = on_send_to_control,
+                on_shutdown = on_shutdown,
+                on_set_terminal_title = on_set_terminal_title,
+                cols = cols,
+                rows = rows,
+                auto_shutdown = auto_shutdown,
+        )

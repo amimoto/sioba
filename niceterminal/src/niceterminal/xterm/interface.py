@@ -1,5 +1,10 @@
 from typing import Optional, Any
-from .base import XTerm, TerminalState, TerminalClosedError, ClientDeleted
+from .base import (
+    XTerm,
+    TerminalState,
+    TerminalClosedError,
+    ClientDeleted,
+)
 
 from datetime import datetime
 import base64
@@ -115,7 +120,7 @@ class XTermInterface(XTerm):
             self.state = TerminalState.CONNECTED
             await self._interface.start()
             self.sync_with_frontend()
-
+            self.sync_config()
 
         def handle_client_disconnect(e: Any) -> None:
             """Handle client disconnections."""
@@ -123,6 +128,8 @@ class XTermInterface(XTerm):
             # Remove disconnected client from metadata
             client_id = f"{self.client.id}-{getattr(e, 'sid', '')}"
             self.metadata.connected_clients.discard(client_id)
+
+        self.config.update(interface.default_config)
 
         self.client.on_connect(handle_client_connect)
         self.client.on_disconnect(handle_client_disconnect)
@@ -132,7 +139,22 @@ class XTermInterface(XTerm):
             self._interface.reference_decrement()
 
     def sync_with_frontend(self) -> None:
-        """Synchronize terminal state with frontend."""
+        """Synchronize the terminal state between backend and frontend.
+
+        This method performs a complete state synchronization by:
+        1. Fetching the current terminal buffer content
+        2. Base64 encoding the buffer data for safe transmission
+        3. Sending the encoded screen content to the frontend via JavaScript
+        4. Updating the cursor position if available
+        5. Checking if the interface has shut down and updating terminal state
+
+        The synchronization is skipped if:
+        - No event loop is available
+        - No interface is connected
+
+        Raises:
+            Exception: Logs any errors that occur during synchronization
+        """
         if core.loop is None or not self._interface:
             logger.warning("No event loop available for terminal sync")
             return
@@ -161,3 +183,6 @@ class XTermInterface(XTerm):
 
         except Exception as e:
             logger.error(f"Failed to sync with frontend: {e}")
+
+
+

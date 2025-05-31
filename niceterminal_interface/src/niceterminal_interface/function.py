@@ -1,12 +1,11 @@
 import threading
-import queue
 import janus
 import asyncio
 from io import StringIO
 
 from typing import Callable
 
-from .base import Interface, BufferedInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_SHUTDOWN
+from .base import BufferedInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_SHUTDOWN
 
 from .errors import InterfaceNotStarted, InterfaceShutdown
 

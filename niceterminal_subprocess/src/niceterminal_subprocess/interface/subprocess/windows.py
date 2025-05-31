@@ -5,11 +5,11 @@ import subprocess
 
 from typing import Callable
 
-from niceterminal_interface import Interface, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
+from niceterminal_interface import PersistentInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
 
 from loguru import logger
 
-class WindowsInterface(Interface):
+class WindowsInterface(PersistentInterface):
     def __init__(self,
                  invoke_command: str,
                  shutdown_command: str = None,
@@ -47,7 +47,6 @@ class WindowsInterface(Interface):
                     )
         logger.warning(f"Spawn result: {result}")
 
-
         # Start a separate thread to read from the console
         self.read_thread = threading.Thread(
                                 target=self._read_loop,
@@ -66,7 +65,7 @@ class WindowsInterface(Interface):
                 asyncio.run(self.send_to_control(data.encode()))
 
     @logger.catch
-    def set_terminal_size(self, rows, cols, xpix=0, ypix=0):
+    def set_terminal_size(self, rows: int, cols: int, xpix: int = 0, ypix: int = 0):
         """Sets the shell window size."""
         if self.state != INTERFACE_STATE_STARTED:
             return

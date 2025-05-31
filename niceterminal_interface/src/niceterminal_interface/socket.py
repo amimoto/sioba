@@ -1,7 +1,6 @@
 import asyncio
-from typing import Callable, Optional, TypedDict
-from .base import PersistentInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_SHUTDOWN
-from .errors import InterfaceNotStarted
+from typing import Optional, TypedDict
+from .base import PersistentInterface, INTERFACE_STATE_STARTED, InterfaceConfig
 from loguru import logger
 
 class ConnectionConfig(TypedDict):
@@ -11,6 +10,11 @@ class ConnectionConfig(TypedDict):
 
 
 class SocketInterface(PersistentInterface):
+
+    config = InterfaceConfig(
+        convertEol = True,
+    )
+
     def __init__(self,
                  connection: ConnectionConfig,
                  **kwargs
