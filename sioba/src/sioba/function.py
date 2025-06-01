@@ -25,13 +25,6 @@ class CaptureMode(Enum):
     GETPASS = 3
 
 class FunctionInterface(BufferedInterface):
-    def _i_getattribute__(self, name):
-        print(f"FunctionInterface: {name}")
-        return super().__getattribute__(name)
-
-    def __del__(self):
-        print(f"!!!!! FunctionInterface: __del__ {self.function}")
-
     def __init__(self,
                  function: Callable,
                  default_capture_state: CaptureMode = CaptureMode.ECHO,
@@ -84,7 +77,10 @@ class FunctionInterface(BufferedInterface):
                 pass
             except Exception as e:
                 logger.error(f"Error in function: {e=} {type(e)}")
-                self.shutdown()            
+                asyncio.run_coroutine_threadsafe(
+                    coro = self.shutdown(),
+                    loop = asyncio.get_running_loop(),
+                )
             logger.debug(f"Function {self.function} finished")
 
         self.function_thread = threading.Thread(target=_run_function, daemon=True)
@@ -193,7 +189,7 @@ class FunctionInterface(BufferedInterface):
                 elif data == b'\x03':  # Ctrl-C
                     logger.debug("Ctrl-C received, shutting down")
                     await self.shutdown()
-                
+
                 # If we're not capturing input, just send the data
                 await self.send_queue.async_q.put(data)
                 return
@@ -234,3 +230,5 @@ class FunctionInterface(BufferedInterface):
         except janus.QueueShutDown:
             # No longer need to respond
             pass
+
+

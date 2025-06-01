@@ -129,7 +129,7 @@ class XTermInterface(XTerm):
             client_id = f"{self.client.id}-{getattr(e, 'sid', '')}"
             self.metadata.connected_clients.discard(client_id)
 
-        self.config.update(interface.default_config)
+        self.config.update(interface.interface_config)
 
         self.client.on_connect(handle_client_connect)
         self.client.on_disconnect(handle_client_disconnect)

@@ -26,7 +26,6 @@ Example:
 import json
 import asyncio
 import base64
-import copy
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum

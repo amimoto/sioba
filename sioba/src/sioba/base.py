@@ -68,7 +68,8 @@ class Interface:
 
     """
 
-    default_config: InterfaceConfig = DEFAULT_CONFIG.copy()
+    default_config: InterfaceConfig = None
+    interface_config: InterfaceConfig = None
     reference_count: int = 0
 
     #######################################
@@ -83,13 +84,18 @@ class Interface:
                  cols: int = 80,
                  rows: int = 24,
                  auto_shutdown: bool = True,
+                 interface_config: Optional[InterfaceConfig] = None,
                  ) -> None:
 
-        print(f"Initializing {self}")
         self.id = str(uuid.uuid4())
         self.title = ""
         self.reference_count = 0
-        print(f"Created {self}.reference_count")
+
+        self.interface_config = DEFAULT_CONFIG.copy()
+        if self.default_config:
+            self.interface_config.update(self.default_config)
+        if interface_config:
+            self.interface_config.update(interface_config)
 
         self._on_receive_from_control_callbacks = set()
         self._on_send_from_xterm_callbacks = set()
@@ -196,6 +202,9 @@ class Interface:
         # Don't bother if we don't have data
         if not data:
             return
+
+        if self.interface_config.convertEol:
+            data = data.replace(b"\r", b"\r\n")
 
         # Dispatch to all listeners
         for on_send in self._on_send_from_xterm_callbacks:
