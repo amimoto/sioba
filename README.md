@@ -21,7 +21,7 @@ The sioba ecosystem is organized into several key modules:
 
 - **`sioba_subprocess`**: Building upon `sioba` and `sioba_nicegui`, this module provides `ShellXTerm`. `ShellXTerm` is a specialized component for running and interacting with live shell subprocesses (e.g., bash, sh, cmd.exe) directly within a NiceGUI web application.
 
-- **`sioba_app`**: **INCOMPLETE** This module provides a command-line application called `niceterm`. `niceterm` leverages the `sioba` libraries to offer a multi-terminal web interface, allowing users to run and interact with various backends (like shell sessions or Python functions) from a web browser.
+-  **INCOMPLETE IN DEVELOPMENT** - **`sioba_app`**: This module provides a command-line application called `sioterm`. `sioterm` leverages the `sioba` libraries to offer a multi-terminal web interface, allowing users to run and interact with various backends (like shell sessions or Python functions) from a web browser.
 
 ## Installation
 
@@ -34,13 +34,13 @@ pip install sioba_nicegui
 # To include support for shell subprocesses (ShellXTerm component)
 pip install sioba_subprocess
 
-# For the 'niceterm' command-line application
-# The 'niceterm' CLI is typically included when you install sioba_nicegui.
+# For the 'sioterm' command-line application
+# The 'sioterm' CLI is typically included when you install sioba_nicegui.
 # If you find it's not available, you might need to install sioba_app separately
 # or check for an extra like: pip install sioba_nicegui[app]
-# (Verify specific packaging if niceterm is missing after installing sioba_nicegui)
+# (Verify specific packaging if sioterm is missing after installing sioba_nicegui)
 ```
-Generally, `pip install sioba_nicegui` is the main entry point for most library users and also provides the `niceterm` application. `sioba_subprocess` is an optional add-on for shell capabilities.
+Generally, `pip install sioba_nicegui` is the main entry point for most library users and also provides the `sioterm` application. `sioba_subprocess` is an optional add-on for shell capabilities.
 
 ## Architecture
 

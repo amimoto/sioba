@@ -1,6 +1,6 @@
 import asyncio
 from typing import Optional, TypedDict
-from .base import PersistentInterface, INTERFACE_STATE_STARTED, InterfaceConfig
+from .base import PersistentInterface, InterfaceState, InterfaceConfig
 from loguru import logger
 
 class ConnectionConfig(TypedDict):
@@ -31,7 +31,7 @@ class SocketInterface(PersistentInterface):
     async def start_interface(self):
         """Launch the socket interface"""
         # Set the state to STARTED immediately so start() won't wait infinitely
-        self.state = INTERFACE_STATE_STARTED
+        self.state = InterfaceState.STARTED
 
         # Start a socket connection
         self.reader, self.writer = await asyncio.open_connection(**self.connection)
@@ -44,7 +44,7 @@ class SocketInterface(PersistentInterface):
     @logger.catch
     async def _receive_loop(self):
         """Continuously receive data from the socket"""
-        while self.state == INTERFACE_STATE_STARTED:
+        while self.state == InterfaceState.STARTED:
             try:
                 data = await self.reader.read(4096)
                 if not data:

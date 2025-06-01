@@ -5,18 +5,14 @@ __all__ = [
     'PersistentInterface',
     'EchoInterface',
     'SocketInterface',
-    'INTERFACE_STATE_INITIALIZED',
-    'INTERFACE_STATE_STARTED',
-    'INTERFACE_STATE_SHUTDOWN'
+    'InterfaceState',
 ]
 
 from .base import (
     Interface,
     BufferedInterface,
     PersistentInterface,
-    INTERFACE_STATE_INITIALIZED,
-    INTERFACE_STATE_STARTED,
-    INTERFACE_STATE_SHUTDOWN,
+    InterfaceState,
 )
 from .function import FunctionInterface
 from .echo import EchoInterface

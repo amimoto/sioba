@@ -7,23 +7,19 @@ import pytest_asyncio
 from loguru import logger
 
 from sioba.errors import InterfaceNotStarted
-from sioba.interface.base import ( Interface,
-                                            INTERFACE_STATE_STARTED,
-                                            INTERFACE_STATE_INITIALIZED,
-                                            INTERFACE_STATE_SHUTDOWN
-                                        )
+from sioba.interface.base import ( Interface, InterfaceState )
 
 @pytest.mark.asyncio
 async def test_interface():
 
     interface = Interface()
-    assert interface.state == INTERFACE_STATE_INITIALIZED
+    assert interface.state == InterfaceState.INTIAIZLIED 
 
     interface.start()
-    assert interface.state == INTERFACE_STATE_STARTED
+    assert interface.state == InterfaceState.STARTED
 
     interface.shutdown()
-    assert interface.state == INTERFACE_STATE_SHUTDOWN
+    assert interface.state == InterfaceState.SHUTDOWN
 
 
 @pytest.mark.asyncio
@@ -61,7 +57,7 @@ async def test_subclass():
             self.captured += data
 
     interface = Subclass()
-    assert interface.state == INTERFACE_STATE_INITIALIZED
+    assert interface.state == InterfaceState.INITIALIZED
 
     data = b"Hello, World!"
     assert interface
@@ -71,7 +67,7 @@ async def test_subclass():
 
     # Start the interface
     interface.start()
-    assert interface.state == INTERFACE_STATE_STARTED
+    assert interface.state == InterfaceState.STARTED
 
     # Now we can write
     await interface.write(data)
@@ -83,4 +79,4 @@ async def test_subclass():
     assert id(interface.captured) != id(data)
     interface.shutdown()
 
-    assert interface.state == INTERFACE_STATE_SHUTDOWN
+    assert interface.state == InterfaceState.SHUTDOWN

@@ -4,8 +4,8 @@ from nicegui import ui
 from sioba_nicegui.xterm.interface import XTermInterface
 from sioba import (
                     Interface,
-                    INTERFACE_STATE_STARTED,
-                    INTERFACE_STATE_INITIALIZED
+                    InterfaceState.STARTED,
+                    InterfaceState.INITIALIZED
 )
 from loguru import logger
 

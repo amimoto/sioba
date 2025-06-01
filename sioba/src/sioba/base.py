@@ -4,14 +4,16 @@ from .errors import InterfaceNotStarted, InterfaceError
 from sioba.errors import TerminalClosedError
 import uuid
 import pyte
+from enum import Enum
 from typing import Optional, Any, Generator
 from dataclasses import dataclass, asdict
 
 from loguru import logger
 
-INTERFACE_STATE_INITIALIZED = 0
-INTERFACE_STATE_STARTED = 1
-INTERFACE_STATE_SHUTDOWN = 2
+class InterfaceState(Enum):
+    INITIALIZED = 0
+    STARTED = 1
+    SHUTDOWN = 2
 
 INTERFACE_THREAD = None
 INTERFACE_LOOP = None
@@ -68,8 +70,18 @@ class Interface:
 
     """
 
-    default_config: InterfaceConfig = None
-    interface_config: InterfaceConfig = None
+    # The default configuration for the interface type. These are defaults for the
+    # protocol level. These values can be overwritten on a case by case basis as needed
+    # via the interface_config argument. We don't use config so that it becomes available
+    # for the protocol level configuration
+    default_config: Optional[InterfaceConfig] = None
+    interface_config: Optional[InterfaceConfig] = None
+
+    # The state of the interface. When initialized it's InterfaceState.INITIALIZED
+    state = None
+
+    # This counds the number of gui controls referencing this interface.
+    # Using this and the current interface state, we can figure out what the 
     reference_count: int = 0
 
     #######################################
@@ -101,7 +113,7 @@ class Interface:
         self._on_send_from_xterm_callbacks = set()
         self._on_shutdown_callbacks = set()
         self._on_set_terminal_title_callbacks = set()
-        self.state = INTERFACE_STATE_INITIALIZED
+        self.state = InterfaceState.INITIALIZED
         if on_receive_from_control:
             self.on_receive_from_control(on_receive_from_control)
         if on_send_to_control:
@@ -135,15 +147,15 @@ class Interface:
             implement if there are syncronous operations required.
         """
 
-        if self.state != INTERFACE_STATE_INITIALIZED:
+        if self.state != InterfaceState.INITIALIZED:
             return
 
         # Start the interface. This calls tasks required to finalize
         # the interface setup. For example, in the case of a socket
         # interface, this would start the socket connection.
-        if self.state != INTERFACE_STATE_INITIALIZED:
+        if self.state != InterfaceState.INITIALIZED:
             return False
-        self.state = INTERFACE_STATE_STARTED
+        self.state = InterfaceState.STARTED
         await self.start_interface()
 
         return self
@@ -154,10 +166,10 @@ class Interface:
     @logger.catch
     async def shutdown(self) -> None:
         """Callback when the shell process shutdowns."""
-        if self.state != INTERFACE_STATE_STARTED:
+        if self.state != InterfaceState.STARTED:
             return
         await self.shutdown_interface()
-        self.state = INTERFACE_STATE_SHUTDOWN
+        self.state = InterfaceState.SHUTDOWN
         logger.debug(f"Shutting down interface {self.id}")
         for on_shutdown in self._on_shutdown_callbacks:
             res = on_shutdown(self)
@@ -172,10 +184,10 @@ class Interface:
     #######################################
 
     def is_running(self) -> bool:
-        return self.state == INTERFACE_STATE_STARTED
+        return self.state == InterfaceState.STARTED
 
     def is_shutdown(self) -> bool:
-        return self.state == INTERFACE_STATE_SHUTDOWN
+        return self.state == InterfaceState.SHUTDOWN
 
     #######################################
     # IO Events
@@ -194,9 +206,9 @@ class Interface:
     @logger.catch
     async def send_to_control(self, data: bytes) -> None:
         """Sends data (in bytes) to the xterm"""
-        if self.state == INTERFACE_STATE_INITIALIZED:
+        if self.state == InterfaceState.INITIALIZED:
             raise InterfaceNotStarted(f"Unable to send data {repr(data)}, interface not started")
-        elif self.state == INTERFACE_STATE_SHUTDOWN:
+        elif self.state == InterfaceState.SHUTDOWN:
             raise TerminalClosedError(f"Unable to send data {repr(data)}, interface is shutdown")
 
         # Don't bother if we don't have data
@@ -336,7 +348,7 @@ class BufferedInterface(Interface):
         self.scrollback_buffer = b""
 
     async def send_to_control(self, data: bytes):
-        if self.state != INTERFACE_STATE_STARTED:
+        if self.state != InterfaceState.STARTED:
             raise InterfaceNotStarted(f"Unable to send data {repr(data)}, interface not started")
 
         # Don't bother if we don't have data

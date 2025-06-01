@@ -5,7 +5,7 @@ import subprocess
 
 from typing import Callable
 
-from sioba import PersistentInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
+from sioba import PersistentInterface, InterfaceState
 
 from loguru import logger
 
@@ -21,7 +21,7 @@ class WindowsInterface(PersistentInterface):
                  ):
         super().__init__(
             on_receive_from_control=on_receive_from_control,
-            on_shutdown=on_shutdown
+            on_shutdown=on_shutdown,
             *args,
             **kwargs
         )
@@ -67,14 +67,14 @@ class WindowsInterface(PersistentInterface):
     @logger.catch
     def set_terminal_size(self, rows: int, cols: int, xpix: int = 0, ypix: int = 0):
         """Sets the shell window size."""
-        if self.state != INTERFACE_STATE_STARTED:
+        if self.state != InterfaceState.STARTED:
             return
         super().set_terminal_size(rows=rows, cols=cols)
 
     @logger.catch
     async def receive_from_control(self, data: bytes):
         """Writes data to the shell."""
-        if self.state != INTERFACE_STATE_STARTED:
+        if self.state != InterfaceState.STARTED:
             return
         self.process.write(data.decode())
         await super().receive_from_control(data)
@@ -94,7 +94,7 @@ class WindowsInterface(PersistentInterface):
         """Monitors process exit and handles cleanup."""
         try:
             await asyncio.to_thread(self.process.wait())  # Wait for process exit
-            self.state = INTERFACE_STATE_SHUTDOWN
+            self.state = InterfaceState.SHUTDOWN
             await self.shutdown()
             # self._on_shutdown_handlers()
         except Exception as e:

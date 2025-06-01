@@ -200,7 +200,7 @@ The `sioba` interfaces facilitate communication between a data source/sink (the 
         *   For `FunctionInterface`, this starts a new thread for your function.
         *   For `SocketInterface`, this initiates an `asyncio.open_connection()`.
         *   For shell interfaces (like in `sioba_nicegui`), this would spawn a PTY process.
-    *   The interface state changes from `INTERFACE_STATE_INITIALIZED` to `INTERFACE_STATE_STARTED`.
+    *   The interface state changes from `InterfaceState.INITIALIZED` to `InterfaceState.STARTED`.
 
 3.  **Data Flow (Backend to Frontend):**
     *   When the backend has data to display (e.g., your function calls `interface.print("hello")`, or a socket receives data):
@@ -224,7 +224,7 @@ The `sioba` interfaces facilitate communication between a data source/sink (the 
 5.  **Shutdown:**
     *   When `await interface.shutdown()` is called (either explicitly, due to an error, or automatically if `auto_shutdown` is true and reference count drops):
         *   The `shutdown_interface()` method is called for subclass-specific cleanup (closing sockets, joining threads, killing processes).
-        *   The state changes to `INTERFACE_STATE_SHUTDOWN`.
+        *   The state changes to `InterfaceState.SHUTDOWN`.
         *   Registered `_on_shutdown_callbacks` are invoked.
 
 **Callbacks:**

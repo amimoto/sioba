@@ -5,7 +5,7 @@ from io import StringIO
 
 from typing import Callable
 
-from .base import BufferedInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED, INTERFACE_STATE_SHUTDOWN
+from .base import BufferedInterface, InterfaceState
 
 from .errors import InterfaceNotStarted, InterfaceShutdown
 
@@ -58,7 +58,7 @@ class FunctionInterface(BufferedInterface):
         self.main_loop = asyncio.get_running_loop()
 
         # Set the state to STARTED immediately so start() won't wait infinitely
-        self.state = INTERFACE_STATE_STARTED
+        self.state = InterfaceState.STARTED
 
         # Create the send queue loop
         logger.debug("Starting send_to_control_loop")
@@ -97,7 +97,7 @@ class FunctionInterface(BufferedInterface):
 
     @logger.catch
     async def send_to_control_loop(self) -> None:
-        while self.state == INTERFACE_STATE_STARTED:
+        while self.state == InterfaceState.STARTED:
             try:
                 # Get data from the queue with a timeout to allow checking the state
                 data = await self.send_queue.async_q.get()
@@ -116,9 +116,9 @@ class FunctionInterface(BufferedInterface):
 
     def print(self, *a, **kw) -> None:
         """Print text to the terminal"""
-        if self.state == INTERFACE_STATE_INITIALIZED:
+        if self.state == InterfaceState.INITIALIZED:
             raise InterfaceNotStarted("Unable to print, interface not started")
-        if self.state == INTERFACE_STATE_SHUTDOWN:
+        if self.state == InterfaceState.SHUTDOWN:
             raise InterfaceShutdown("Unable to print, interface is shut down")
 
         # Use the python string handling to format the text
@@ -136,9 +136,9 @@ class FunctionInterface(BufferedInterface):
     @logger.catch
     def capture(self, prompt: str, capture_mode: CaptureMode) -> str:
         """Get password input (doesn't echo) from the terminal"""
-        if self.state == INTERFACE_STATE_INITIALIZED:
+        if self.state == InterfaceState.INITIALIZED:
             raise InterfaceNotStarted("Unable to get input, interface not started")
-        if self.state == INTERFACE_STATE_SHUTDOWN:
+        if self.state == InterfaceState.SHUTDOWN:
             raise InterfaceShutdown("Unable to get input, interface is shut down")
 
         # Clear any previous input
@@ -170,9 +170,9 @@ class FunctionInterface(BufferedInterface):
 
     @logger.catch
     async def receive_from_control(self, data: bytes) -> None:
-        if self.state == INTERFACE_STATE_INITIALIZED:
+        if self.state == InterfaceState.INITIALIZED:
             raise InterfaceNotStarted("Interface not ready to receive data")
-        if self.state == INTERFACE_STATE_SHUTDOWN:
+        if self.state == InterfaceState.SHUTDOWN:
             raise InterfaceShutdown("Interface is shut down")
 
         try:

@@ -2,9 +2,9 @@
 sioba Web Interface
 
 Usage:
-    niceterm [options]
-    niceterm -h | --help
-    niceterm --version
+    sioterm [options]
+    sioterm -h | --help
+    sioterm --version
 
 Options:
   -h --help                    Show this help.

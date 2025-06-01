@@ -28,7 +28,7 @@ requires = ["pdm-backend>=0.12"]
 build-backend = "pdm.backend"
 
 [project.scripts]
-niceterm = "sioba.cli:main [cli]"
+sioterm = "sioba.cli:main [cli]"
 
 [project.urls]
 Homepage = "https://github.com/amimoto/sioba"

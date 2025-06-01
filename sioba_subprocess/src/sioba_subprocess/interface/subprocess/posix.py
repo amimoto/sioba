@@ -8,7 +8,7 @@ import termios
 
 from typing import Callable
 
-from sioba import PersistentInterface, INTERFACE_STATE_STARTED, INTERFACE_STATE_SHUTDOWN
+from sioba import PersistentInterface, InterfaceState
 from sioba_subprocess.utils import default_shell
 
 from loguru import logger
@@ -80,7 +80,7 @@ class PosixInterface(PersistentInterface):
     @logger.catch
     def set_terminal_size(self, rows, cols, xpix=0, ypix=0):
         """Sets the shell window size."""
-        if self.state != INTERFACE_STATE_STARTED:
+        if self.state != InterfaceState.STARTED:
             return
         winsize = struct.pack("HHHH", rows, cols, xpix, ypix)
         fcntl.ioctl(self.subordinate_fd, termios.TIOCSWINSZ, winsize)
@@ -91,14 +91,14 @@ class PosixInterface(PersistentInterface):
     async def _monitor_exit(self):
         """Monitors process exit and handles cleanup."""
         await self.process.wait()  # Wait until the process exits
-        self.state = INTERFACE_STATE_SHUTDOWN
+        self.state = InterfaceState.SHUTDOWN
         await self.shutdown()
 
     @logger.catch
     async def shutdown_interface(self):
         """Shuts down the shell process."""
         logger.info(f"Shutting down process {self.process.pid}")
-        if self.state == INTERFACE_STATE_STARTED:
+        if self.state == InterfaceState.STARTED:
             try:
                 self.process.kill()
                 pgrp = os.getpgid(self.process.pid)
@@ -120,7 +120,7 @@ class PosixInterface(PersistentInterface):
                     executable='/bin/bash',
                 )
                 await shutdown_process.wait()
-            self.state = INTERFACE_STATE_SHUTDOWN
+            self.state = InterfaceState.SHUTDOWN
 
             await self.process.wait()
 
