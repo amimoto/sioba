@@ -1,399 +1,182 @@
-# sioba_nicegui: A NiceGUI xterm.js Control
+# sioba: Simple IO Backend Abstraction
 
-[![PyPI](https://img.shields.io/pypi/v/sioba.svg)](https://pypi.org/project/sioba/)
-[![License](https://img.shields.io/badge/license-MIT--0-blue.svg)](#license)
-[![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+## Introduction
 
-This **WIP** project provides an [xterm.js](https://xtermjs.org/) based terminal component for your [NiceGUI](https://nicegui.io/) apps, running on both Linux and Windows. It allows you to embed fully interactive terminals (local shells, serial connections, or anything else) within your NiceGUI UI.
+sioba (Simple IO Backend Abstraction) is a Python library designed to provide a unified way to handle various input/output (I/O) backends and connect them to user interfaces, particularly terminal emulators. Its primary goal is to simplify the integration of interactive, text-based backends (like functions, sockets, or shell processes) with frontends such as web-based terminal emulators.
 
-> **Disclaimer**: This is **not** an official [NiceGUI](https://nicegui.io/) project. Use it at your own risk, especially when enabling shell or device access.
+The name "sioba" is both a mild pun on soba noodles (evoking the imagery of I/O pipes) and an acronym for Simple IO Backend Abstraction.
 
----
+## Modules
 
-## Features
+The sioba ecosystem is organized into several key modules:
 
-- **NiceGUI Integration**: Easily add a terminal component inside your NiceGUI UI.
-- **Local Shell Support**: Provides a local shell out of the box on Linux and Windows (via `pywinpty` on Windows).
-- **Custom IO Stream Support**: Extend the base `Interface` class to communicate with any data source, such as serial devices, remote servers, or custom processes.
-- **Concurrent Access**: Multiple terminals or multiple users are supported.
-- **Persistent State**: Caches screen data, so refreshing doesn’t necessarily lose session output.
-- **Optional Authentication**: The `niceterm` CLI supports authentication or no-auth modes.
-- **Isolation Levels**: Control whether terminals are shared globally, per user, or per browser tab.
+- **`sioba`**: This is the core library. It provides the fundamental `Interface` base classes (`Interface`, `BufferedInterface`, `PersistentInterface`) that define the contract for communication between backends and frontends. It also includes concrete interface implementations like:
+    - `EchoInterface`: A simple interface that echoes input back.
+    - `FunctionInterface`: An interface that runs a Python function as the backend, enabling interactive text-based applications.
+    - `SocketInterface`: An interface that connects to a network socket, behaving like a basic Telnet client.
 
----
+- **`sioba_nicegui`**: This module integrates `sioba` with the [NiceGUI](https://nicegui.io/) framework. It offers the `XTerm` component, which allows embedding an xterm.js-based terminal emulator directly into NiceGUI web user interfaces. This `XTerm` component can be connected to any `sioba` interface.
+
+- **`sioba_subprocess`**: Building upon `sioba` and `sioba_nicegui`, this module provides `ShellXTerm`. `ShellXTerm` is a specialized component for running and interacting with live shell subprocesses (e.g., bash, sh, cmd.exe) directly within a NiceGUI web application.
+
+- **`sioba_app`**: This module provides a command-line application called `niceterm`. `niceterm` leverages the `sioba` libraries to offer a multi-terminal web interface, allowing users to run and interact with various backends (like shell sessions or Python functions) from a web browser.
 
 ## Installation
 
-**Library only**:
+The installation process depends on the components you intend to use:
+
 ```bash
+# For the core sioba library and NiceGUI integration (XTerm component)
 pip install sioba_nicegui
+
+# To include support for shell subprocesses (ShellXTerm component)
+pip install sioba_subprocess
+
+# For the 'niceterm' command-line application
+# The 'niceterm' CLI is typically included when you install sioba_nicegui.
+# If you find it's not available, you might need to install sioba_app separately
+# or check for an extra like: pip install sioba_nicegui[app]
+# (Verify specific packaging if niceterm is missing after installing sioba_nicegui)
 ```
+Generally, `pip install sioba_nicegui` is the main entry point for most library users and also provides the `niceterm` application. `sioba_subprocess` is an optional add-on for shell capabilities.
 
-**Library + CLI** (installs the `niceterm` command):
-```bash
-pip install sioba_nicegui
-```
+## Architecture
 
-> **Note**: The CLI offers easy web-based shell access, which can be a security concern. Enable it only if you understand the risks.
+The core concept of `sioba` revolves around its `Interface` classes, which act as a bridge between a backend data source/sink and a frontend control mechanism.
 
----
+- **Backend**: This is where the actual I/O operations occur. It could be:
+    - A Python function that interacts with the user via `print` and `input`.
+    - A live shell process (e.g., `/bin/bash`).
+    - A network socket connection to a remote server.
+    - Any other source/destination of byte streams or text.
 
-## Quick Start
+- **Frontend/Control**: This is the user-facing component that displays output from the backend and sends user input to it. Typically, this is a terminal emulator, like the `XTerm` component provided by `sioba_nicegui`.
 
-A minimal example to embed a shell terminal in a NiceGUI page:
+The `Interface` subclasses in `sioba` are responsible for managing the specifics of communication with their respective backends and relaying data to and from the connected frontend control. They use a system of callbacks (e.g., `on_send_to_control`, `on_shutdown`) to signal events to the frontend.
+
+## Key Classes and Relationships
+
+- **`sioba.base.Interface`**:
+    - The abstract base class for all interfaces.
+    - Defines the core contract:
+        - Lifecycle methods: `start()`, `shutdown()`.
+        - I/O methods: `send_to_control(data: bytes)` for sending data to the frontend, and `receive_from_control(data: bytes)` for receiving data from the frontend.
+    - Manages callbacks for events: `on_send_to_control` (triggered when data should be sent to the frontend), `on_shutdown` (triggered when the interface is shutting down).
+
+- **`sioba.base.BufferedInterface`**:
+    - A subclass of `Interface`.
+    - Adds a scrollback buffer, allowing it to store a history of output that has been sent to the control. This is useful for frontends that might connect after some output has already been generated or that need to redraw history.
+
+- **`sioba.base.PersistentInterface`**:
+    - A subclass of `Interface`.
+    - Integrates with the `pyte` library for more sophisticated terminal emulation. It maintains a virtual terminal screen, processes ANSI escape codes, and keeps track of cursor position and screen content. This is ideal for backends that expect a true terminal environment (e.g., many command-line applications, Telnet/SSH sessions).
+
+- **Concrete Interface Implementations**:
+    - **`sioba.echo.EchoInterface(Interface)`**: A very basic interface that simply echoes any data it receives from the control back to the control. Useful for testing the frontend connection.
+    - **`sioba.function.FunctionInterface(BufferedInterface)`**: Runs a target Python function in a separate thread as the backend. It provides `print()`, `input()`, and `getpass()` methods that are redirected to interact with the connected frontend control.
+    - **`sioba.socket.SocketInterface(PersistentInterface)`**: Connects to a specified network host and port (TCP client), acting like a simple Telnet client. It uses `PersistentInterface` to handle terminal escape codes from the remote server.
+
+- **`sioba_nicegui.xterm.XTerm`**:
+    - A UI component for the NiceGUI web framework.
+    - Renders an `xterm.js` terminal emulator in the web browser.
+    - It can be used standalone (e.g., for client-side JavaScript interactions) or, more commonly, connected to a `sioba.base.Interface` instance.
+    - When connected to an interface:
+        - User input typed into the `XTerm` is sent to the interface's `receive_from_control` method.
+        - Data sent by the interface via `send_to_control` (triggered by its `on_send_to_control` callback) is written to the `XTerm` display.
+
+- **`sioba_subprocess.ShellXTerm`**:
+    - Provided by the `sioba_subprocess` module (`from sioba_subprocess import ShellXTerm`).
+    - A high-level component, often a subclass or composition involving `sioba_nicegui.XTerm` and a dedicated `sioba` interface for managing shell processes.
+    - Specifically designed to run and interact with local shell processes (e.g., bash, PowerShell, cmd.exe).
+    - Handles the complexities of Pseudo-Terminal (PTY) creation and management for robust shell interaction.
+
+## High-Level Interaction Flow
+
+Consider a `FunctionInterface` connected to an `XTerm` component in a NiceGUI application:
+
+1.  **User Input**: The user types a command (e.g., "hello") into the `XTerm` component displayed in their web browser.
+2.  **Frontend to Interface**: The `XTerm` component captures this input and calls the `receive_from_control(b"hello\r")` method of the connected `FunctionInterface` instance.
+3.  **Interface Processing**: The `FunctionInterface` receives the data. If its backend Python function was waiting on an `input()` call, this data is provided to that call.
+4.  **Backend Logic**: The Python function in the backend runs. For example, it might execute `name = input("Enter name: "); print(f"Hello, {name}")`.
+5.  **Backend Output**: When the function calls `print("Hello, username")`, the `FunctionInterface` captures this output.
+6.  **Interface to Frontend**: The `FunctionInterface` calls its `send_to_control(b"Hello, username\n")` method. This, in turn, triggers its `on_send_to_control` callback, which the `XTerm` component is listening to.
+7.  **Display Output**: The `XTerm` component receives `b"Hello, username\n"` via the callback and displays "Hello, username" in the terminal emulator in the browser.
+
+A similar flow applies to other interfaces like `SocketInterface` or the one used by `ShellXTerm`, with the interface managing communication with its specific backend (a socket or a shell process).
+
+## Examples
+
+Here are a couple of examples to illustrate common use cases:
+
+**1. Quick Web Shell with `ShellXTerm` (from `sioba_subprocess`)**
+
+This example demonstrates how easily you can embed a functional shell into a NiceGUI web page.
 
 ```python
+# main.py (example usage)
 from nicegui import ui
-from sioba_nicegui.xterm import ShellXTerm
+from sioba_subprocess import ShellXTerm
 
-# Create a full-page terminal that opens your default shell.
-ShellXTerm().classes("w-full h-full")
+# By default, uses 'bash' on Linux/macOS and 'cmd.exe' on Windows
+# ShellXTerm has arguments to customize the shell command, e.g., ShellXTerm(command=['powershell'])
+shell_xterm = ShellXTerm()
 
 ui.run()
 ```
+When you run this NiceGUI application, you'll get a web page with a terminal that provides direct access to a shell on the server.
 
-Open your app in the browser. You’ll see a page hosting an interactive shell.
+**2. Interactive Python Script with `FunctionInterface` and `XTerm`**
 
----
-
-## Library Overview
-
-`sioba` is built around two key abstractions:
-
-1. **XTerm** – A NiceGUI element based on xterm.js, rendering an interactive terminal in the browser.
-2. **Interface** – An abstract base class specifying how terminal input/output is processed on the Python side.
-
-### XTerm Class
+This example shows how to run an interactive Python function and connect it to a web terminal.
 
 ```python
-from sioba_nicegui.xterm import XTerm
-```
-
-**Purpose**:
-- Renders an xterm.js terminal in NiceGUI.
-- Handles sending data to and receiving data from a backend (shell, serial port, custom service, etc.).
-
-**Key Parameters / Methods**:
-- **`__init__(self, config: TerminalConfig, interface:Interface=None, on_change: Callable, on_close: Callable, **kwargs)`**
-  - `interface`: A subclass of `Interface` that manages I/O.
-- **`write(self, data: bytes)`**
-  - Called by the attached interface to send output to the terminal.
-- **`set_cursor_location(self, row: int, col: int)`**
-  - Manually position the cursor on the UI (not interface)
-
-
-**Example**:
-```python
-from sioba.interface.base import Interface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED
-from loguru import logger
-
+# main.py (example usage)
 from nicegui import ui
-from sioba_nicegui.xterm import XTerm
-
-class EchoInterface(Interface):
-    async def receive(self, data: bytes):
-        await self.send(data)
-
-# Instantiate our custom interface for a specific echo device
-echo_interface = EchoInterface()
-echo_interface.start()
-
-# Render in your NiceGUI app
-ui.label("Echo Terminal")
-
-# Create an XTerm bound to the echo interface
-echo_terminal = XTerm(interface=echo_interface).classes("w-full h-full")
-
-ui.run()
-```
-In this simplistic example, whatever the user types is immediately echoed back.
-
-### ShellXTerm Subclass
-
-```python
-from sioba_nicegui.xterm import ShellXTerm
-```
-
-**Purpose**:
-- A convenience subclass that provides a local shell interface automatically (using `pty` on Linux or `pywinpty` on Windows).
-
-**Key Usage**:
-```python
-ShellXTerm().classes("w-full h-full")
-```
-- Spawns `bash` on Linux or `cmd.exe` on Windows.
-- If you need a different shell (e.g., `powershell`), you can pass arguments directly to the underlying interface.
-
-### Interface Base Class
-
-```python
-from sioba.interface import Interface
-```
-
-**Purpose**:
-- Defines the core contract for reading/writing data between the browser-based terminal and a Python-driven data source.
-
-**Methods**:
-- **`send(data: bytes) -> None`**
-  - Sends data to to the web-based XTerm to be shown to the user
-- **`receive(data: bytes) -> None`**
-  - Invoked when data is received from the web-based XTerm
-- **`close(self) -> None`**
-  - Close/cleanup the underlying connection or process.
-
-- **`is_running(self) -> bool`**
-  - True when the interface is actively sending/receiving data
-- **`is_shutdow(self) -> bool`**
-  - True when the interface has closed and we don't expect more IO
-- **`is_closed(self) -> bool`**
-  - Return True if the backend is closed or invalid.
-
-- **`on_send(on_send: Callable) -> None`**
-- **`on_receive(on_send: Callable) -> None`**
-- **`on_set_terminal_title_handle(on_send: Callable) -> None`**
-- **`on_shutdown(on_send: Callable) -> None`**
-
-- **`set_terminal_title(name: str) -> None`**
-- **`set_terminal_size(rows: int, cols: int, xpix: int=0, ypix: int=0) -> None`**
-- **`get_terminal_buffer() -> bytes`**
-- **`get_terminal_cursor_position() -> tuple[int, int]|None`**
-
-Extend `Interface` to suit your needs (local shell, remote connections, serial devices, etc.).
-
-### BufferedInterface Base Class
-
-### PersistantInterface Base Class
-
-### FunctionInterface Class
-
-This is probably one of the more useful classes. This can be used with basic function code to write text based interfaces that interact with a user over the web.
-
-Basic example:
-
-```python
-#!/usr/bin/env python
-
-from nicegui import ui
-from sioba.interface.function import FunctionInterface
-from sioba_nicegui.xterm import XTerm
-
+from sioba import FunctionInterface
+from sioba_nicegui import XTerm
 import time
-import datetime
 
-def terminal_code(interface: FunctionInterface):
-    interface.print("Hello, World!")
-    interface.print("This is a simple script.")
-
+def my_interactive_function(interface: FunctionInterface):
+    """
+    An example interactive function.
+    Uses interface.print, interface.input, interface.getpass.
+    """
+    interface.print("Welcome to the interactive function!")
     name = interface.input("What's your name? ")
     interface.print(f"Hello, {name}!")
 
-    hidden = interface.getpass("Enter your hidden word: ")
-    interface.print(f"Your hidden word is: {hidden}")
+    for i in range(5):
+        interface.print(f"Counting: {i+1}/5")
+        time.sleep(1)
+    interface.print("Done!")
 
-    while True:
-        time.sleep(2)
-        interface.print(f"It is: {datetime.datetime.now()}")
+# Create the FunctionInterface with your function
+func_interface = FunctionInterface(my_interactive_function)
 
-xterm = XTerm(
-            interface=FunctionInterface(terminal_code)
-        ).classes("w-full")
+# Create the XTerm component and link it to the interface
+terminal = XTerm().props('rows=20') # Make it a bit taller
+terminal.link_interface(func_interface)
 
-# Make sure static files can be found
-try:
-    ui.run(
-        title="sioba Function Example",
-        port=9000,
-        host="0.0.0.0",
-        reload=False,
-        show=True,
-        favicon="📟"
-    )
-except KeyboardInterrupt:
-    pass
-
-```
-
-
----
-
-## Custom Interface Example: Serial Port
-
-Below is an example of using [pyserial](https://pyserial.readthedocs.io/en/latest/) to connect a serial port to the terminal.
-
-1. **Install pyserial**:
-   ```bash
-   pip install pyserial
-   ```
-2. **Create a custom interface** that:
-   - Opens the serial port.
-   - Listens for incoming data (in a background thread).
-   - Forwards terminal input back to the serial device.
-
-```python
-import threading
-import serial
-from sioba.interface.base import Interface, INTERFACE_STATE_STARTED, INTERFACE_STATE_INITIALIZED
-from loguru import logger
-
-from nicegui import ui
-from sioba_nicegui.xterm import XTerm
-
-class SerialPortInterface(Interface):
-    def __init__(self, port="/dev/ttyUSB0", baudrate=115200, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.port = port
-        self._closed = False
-        self.baudrate = baudrate
-        self.ser = None
-
-    @logger.catch
-    async def start_interface(self):
-        """Starts the shell process asynchronously."""
-        if self.state != INTERFACE_STATE_INITIALIZED:
-            return
-        self.state = INTERFACE_STATE_STARTED
-
-        # Open the serial device
-        self.ser = serial.Serial(self.port, self.baudrate, timeout=0)
-
-        # Start a background thread to read from the serial port
-        self._read_thread = threading.Thread(target=self._read_loop, daemon=True)
-        self._read_thread.start()
-
-    def _read_loop(self):
-        while not self._closed:
-            data = self.ser.read(1024)  # Non-blocking read
-            if data:
-                # Send any received data to the terminal
-                self.read(data)
-
-    async def write(self, data: bytes):
-        if not self.ser:
-            return
-        # When the user types in the terminal, send it to the serial device
-        if not self._closed and self.ser.is_open:
-            # Ensure we encode to bytes
-            self.ser.write(data)
-
-    def close(self):
-        # Cleanup
-        if not self.ser:
-            return
-        self._closed = True
-        if self.ser.is_open:
-            self.ser.close()
-
-    def is_closed(self):
-        return self._closed
-```
-
-3. **Integrate your `SerialPortInterface` with `XTerm`** in a NiceGUI app:
-
-```python
-from nicegui import ui
-from sioba_nicegui.xterm import XTerm
-
-# Instantiate our custom interface for a specific serial device
-serial_interface = SerialPortInterface(port="COM4", baudrate=115200)
-if  __name__ == "__mp_main__":
-    serial_interface.start()
-
-# Render in your NiceGUI app
-ui.label("Serial Port Terminal")
-
-# Create an XTerm bound to the serial interface
-serial_terminal = XTerm(interface=serial_interface).classes("w-full h-full")
-
-
-ui.run()
-
-```
-
-Now anything typed in the terminal is sent to the specified serial port, and anything received from the device is displayed in the terminal.
-
----
-
-## CLI Usage (`niceterm`)
-
-Installing with `[cli]` provides the `niceterm` command, a convenient multi-terminal web interface:
-
-```text
-sioba Web Interface
-
-Usage:
-    niceterm [options]
-    niceterm -h | --help
-    niceterm --version
-
-Options:
-  -h --help                    Show this help.
-  --version                    Show version.
-  --host=<host>                Host to bind web interface [default: 0.0.0.0].
-  --port=<port>                Port for web interface [default: 8080].
-  --app=<command>              Default command to start in new terminals [default: bash].
-  --password=<pass>            Set authentication password.
-  --no-auth                    Disable authentication requirement (cannot combine with --password).
-  --light-mode                 Use light mode theme.
-  --log-level=<level>          Set log level [default: INFO].
-  --isolation=<level>          At what level terminals are shared [default: global].
-                               (global, user, or tab)
-```
-
-### Examples
-```bash
-# Start with default settings on port 8080:
-niceterm
-
-# Start on port 9000, with no authentication:
-niceterm --port 9000 --no-auth
-
-# Provide a specific password:
-niceterm --password secret123
-
-# Run Python in each new terminal and isolate them per tab:
-niceterm --app "python3" --isolation tab
-```
-
-On startup, logs display the server address and an auto-generated password (if `--password` wasn’t specified).
-
----
-
-## Screenshots
-
-| Authentication Screen                        | Terminal Dashboard                          |
-|---------------------------------------------|---------------------------------------------|
-| ![](https://raw.githubusercontent.com/amimoto/sioba/refs/heads/main/sioba-authentication.png) | ![](https://raw.githubusercontent.com/amimoto/sioba/refs/heads/main/sioba-webterminal.png) |
-
-**Simple auto-index page usage**:
-
-```python
-from nicegui import ui
-from sioba_nicegui.xterm import ShellXTerm
-
-ShellXTerm().classes("w-full h-full")
+# Start the interface (runs the function in a thread)
+func_interface.start()
 
 ui.run()
 ```
+This will display a terminal in the browser. The `my_interactive_function` will run on the server, and its `print` and `input` calls will be routed through the `XTerm`.
 
-Which yields:
+## Contributing
 
-![](https://raw.githubusercontent.com/amimoto/sioba/refs/heads/main/sioba.png)
+Contributions are welcome! If you have suggestions for improvements, new features, or bug fixes, please feel free to:
+- Open an issue on the GitHub repository to discuss your ideas.
+- Submit a pull request with your changes.
 
----
+Please refer to the project's GitHub page for more details: [Link to GitHub Issues Page - To be updated]
 
-## Security Considerations
-
-1. **Open Shell/Device Access**: Running `niceterm` or embedding a shell/serial interface in a publicly exposed NiceGUI app is risky.
-2. **Authentication**: Always protect your deployment with strong passwords or other authentication methods if it’s internet-accessible.
-3. **TLS/SSL**: Consider using HTTPS or a secure reverse proxy for production. (or simply just... maybe not use this in production. This is an experimental library after all)
-4. **Isolation Levels**: With `niceterm`, you can decide whether multiple users/tabs share the same terminal or have separate sessions.
-
----
+*(Please replace `[Link to GitHub Issues Page - To be updated]` with the actual link to your project's issues page, e.g., `https://github.com/your-username/sioba/issues`)*
 
 ## License
 
-This project is released under the [MIT-0 License](https://github.com/amimoto/sioba/blob/main/LICENSE). You’re free to copy, modify, and distribute this software with no attribution required.
+This project is licensed under the **MIT-0 License**.
 
----
-
-_If you have suggestions, bug reports, or feature requests, please open an [issue on GitHub](https://github.com/amimoto/sioba/issues)._
+You can find the full license text in the `LICENSE` file in the repository.
+*(Ensure a `LICENSE` file with the MIT-0 content exists at the root of your project.)*
