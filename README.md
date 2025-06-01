@@ -1,6 +1,8 @@
-# sioba: Simple IO Backend Abstraction
+# SIOba: Simple IO Backend Abstraction
 
 ## Introduction
+
+<img src="sioba-image.png" width="300" />
 
 sioba (Simple IO Backend Abstraction) is a Python library designed to provide a unified way to handle various input/output (I/O) backends and connect them to user interfaces, particularly terminal emulators. Its primary goal is to simplify the integration of interactive, text-based backends (like functions, sockets, or shell processes) with frontends such as web-based terminal emulators.
 
@@ -19,7 +21,7 @@ The sioba ecosystem is organized into several key modules:
 
 - **`sioba_subprocess`**: Building upon `sioba` and `sioba_nicegui`, this module provides `ShellXTerm`. `ShellXTerm` is a specialized component for running and interacting with live shell subprocesses (e.g., bash, sh, cmd.exe) directly within a NiceGUI web application.
 
-- **`sioba_app`**: This module provides a command-line application called `niceterm`. `niceterm` leverages the `sioba` libraries to offer a multi-terminal web interface, allowing users to run and interact with various backends (like shell sessions or Python functions) from a web browser.
+- **`sioba_app`**: **INCOMPLETE** This module provides a command-line application called `niceterm`. `niceterm` leverages the `sioba` libraries to offer a multi-terminal web interface, allowing users to run and interact with various backends (like shell sessions or Python functions) from a web browser.
 
 ## Installation
 
