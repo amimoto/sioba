@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from sioba import EchoInterface
 from sioba_nicegui.xterm import XTermInterface
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-xterm = XTermInterface(EchoInterface()).classes("w-full")
+xterm = XTermInterface.from_uri("echo://").classes("w-full")
 
 # Make sure static files can be found
 try:

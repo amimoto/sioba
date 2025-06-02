@@ -1,6 +1,7 @@
 import asyncio
 from typing import Optional, TypedDict
-from .base import PersistentInterface, InterfaceState, InterfaceConfig
+from .base import Interface, InterfaceState, InterfaceConfig
+from .registry import register_interface
 from loguru import logger
 
 class ConnectionConfig(TypedDict):
@@ -8,8 +9,8 @@ class ConnectionConfig(TypedDict):
     host: str
     port: int
 
-
-class SocketInterface(PersistentInterface):
+@register_interface("tcp")
+class SocketInterface(Interface):
 
     config = InterfaceConfig(
         convertEol = True,
@@ -65,8 +66,6 @@ class SocketInterface(PersistentInterface):
     async def receive_from_control(self, data: bytes):
         """Add data to the send queue"""
         if self.writer:
-            data = data.replace(b"\r", b"\r\n")
-
             # Send to the socket
             self.writer.write(data)
 
@@ -84,3 +83,4 @@ class SocketInterface(PersistentInterface):
         if self.writer:
             self.writer.close()
             await self.writer.wait_closed()
+

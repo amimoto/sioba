@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Optional, Any, Callable, Tuple
 from .base import (
     XTerm,
     TerminalState,
@@ -13,7 +13,7 @@ from nicegui import core, ui
 from nicegui.client import Client
 import weakref
 
-from sioba.base import Interface
+from sioba import init_interface, Interface
 
 from loguru import logger
 
@@ -24,12 +24,48 @@ class XTermInterface(XTerm):
     instances in a NiceGUI application.
     """
 
-    def __init__(self, interface: Optional[Interface], *args, **kwargs) -> None:
+    def __init__(
+            self,
+            interface: Optional[Interface],
+            *args,
+            **kwargs
+        ) -> None:
         super().__init__(*args, **kwargs)
         self._interface = interface
 
         if interface:
             self.connect_interface(interface)
+
+    @classmethod
+    def from_uri(
+            cls,
+            uri: str,
+            interface_config: Optional[dict] = None,
+            on_receive_from_control: Optional[Callable] = None,
+            on_send_to_control: Optional[Callable] = None,
+            on_shutdown: Optional[Callable] = None,
+            on_set_terminal_title: Optional[Callable] = None,
+            *args,
+            **kwargs
+        ) -> Tuple[Interface, 'XTermInterface']:
+        """Create an XTermInterface instance from a URI.
+
+        Args:
+            uri: The URI to connect to
+            interface_config: Optional configuration for the interface
+
+        Returns:
+            A tuple containing the initialized Interface and the XTermInterface instance.
+        """
+        interface = init_interface(
+            uri=uri,
+            interface_config=interface_config,
+            on_receive_from_control=on_receive_from_control,
+            on_send_to_control=on_send_to_control,
+            on_shutdown=on_shutdown,
+            on_set_terminal_title=on_set_terminal_title,
+        )
+        return interface, cls(interface, *args, **kwargs)
 
     def connect_interface(self, interface: Interface) -> None:
         """Connect a terminal interface to this XTerm instance.
@@ -183,6 +219,4 @@ class XTermInterface(XTerm):
 
         except Exception as e:
             logger.error(f"Failed to sync with frontend: {e}")
-
-
 

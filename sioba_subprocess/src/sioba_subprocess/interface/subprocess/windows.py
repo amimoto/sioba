@@ -5,11 +5,11 @@ import subprocess
 
 from typing import Callable
 
-from sioba import PersistentInterface, InterfaceState
+from sioba import Interface, InterfaceState
 
 from loguru import logger
 
-class WindowsInterface(PersistentInterface):
+class WindowsInterface(Interface):
     def __init__(self,
                  invoke_command: str,
                  shutdown_command: str = None,

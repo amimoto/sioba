@@ -5,7 +5,7 @@ from io import StringIO
 
 from typing import Callable
 
-from .base import BufferedInterface, InterfaceState
+from .base import Interface, InterfaceState
 
 from .errors import InterfaceNotStarted, InterfaceShutdown
 
@@ -24,7 +24,7 @@ class CaptureMode(Enum):
     INPUT = 2
     GETPASS = 3
 
-class FunctionInterface(BufferedInterface):
+class FunctionInterface(Interface):
     def __init__(self,
                  function: Callable,
                  default_capture_state: CaptureMode = CaptureMode.ECHO,

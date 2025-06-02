@@ -8,12 +8,12 @@ import termios
 
 from typing import Callable
 
-from sioba import PersistentInterface, InterfaceState
+from sioba import Interface, InterfaceState
 from sioba_subprocess.utils import default_shell
 
 from loguru import logger
 
-class PosixInterface(PersistentInterface):
+class PosixInterface(Interface):
     def __init__(self,
                  invoke_command: str,
                  shutdown_command: str = None,

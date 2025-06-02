@@ -10,6 +10,8 @@ This document describes the main interface classes provided by the `sioba` modul
 
 The `Interface` class (from `sioba.base`) is the cornerstone of the `sioba` module. All other specialized interface classes inherit from it. It establishes the fundamental contract for managing the lifecycle and I/O operations of a terminal connection.
 
+This interface also provides terminal emulation by integrating with the `pyte` library. This allows it to maintain a virtual screen, understand ANSI escape codes, and keep track of cursor position and screen content more accurately.
+
 **Key Responsibilities:**
 
 *   **Lifecycle Management:** Handles the initialization, startup, and shutdown of the interface.
@@ -31,29 +33,6 @@ The `Interface` class (from `sioba.base`) is the cornerstone of the `sioba` modu
     *   `set_terminal_size(rows: int, cols: int, ...)`: Informs the interface about the terminal dimensions. (Actual resizing behavior depends on the subclass).
     *   `get_terminal_buffer() -> bytes`: Intended to return the current content of the terminal buffer (behavior varies by subclass).
     *   `get_terminal_cursor_position() -> tuple[int, int] | None`: Intended to return the cursor position (behavior varies by subclass).
-
-The `Interface` class itself is typically not instantiated directly but serves as a blueprint for concrete implementations like `FunctionInterface` or `SocketInterface`.
-
-## `BufferedInterface`
-
-The `BufferedInterface` class (from `sioba.base`) extends `Interface` to add a scrollback buffer.
-
-**Key Features:**
-
-*   **Inherits from `Interface`:** All functionalities of the base `Interface` class are available.
-*   **Scrollback Buffer:** This interface maintains an internal buffer of the data that has been sent to the control (i.e., the terminal display).
-    *   `scrollback_buffer_size` (constructor argument): Sets the maximum number of bytes to store in the scrollback buffer.
-    *   `get_terminal_buffer() -> bytes`: Overrides the base method to return the content of its scrollback buffer. This is useful for restoring terminal content if a UI component re-initializes.
-
-This interface is useful when you need to keep a history of the output sent to the terminal, for example, to allow a user to scroll back or to repopulate the terminal display after a refresh. `FunctionInterface` is an example of a class that inherits from `BufferedInterface`.
-
-## `PersistentInterface`
-
-The `PersistentInterface` class (from `sioba.base`) extends `Interface` to provide a more complete terminal emulation by integrating with the `pyte` library. This allows it to maintain a virtual screen, understand ANSI escape codes, and keep track of cursor position and screen content more accurately.
-
-**Key Features:**
-
-*   **Inherits from `Interface`:** Includes all base `Interface` functionalities.
 *   **`pyte` Integration:** Uses a `pyte.Screen` and `pyte.Stream` internally.
     *   The `stream.feed()` method is used to process incoming data, allowing `pyte` to interpret terminal control sequences.
 *   **Terminal Emulation:**
@@ -61,10 +40,10 @@ The `PersistentInterface` class (from `sioba.base`) extends `Interface` to provi
     *   `set_terminal_size(rows: int, cols: int, ...)`: Resizes the `pyte.Screen` in addition to informing the interface.
     *   `get_terminal_buffer() -> bytes`: Dumps the current state of the `pyte.Screen` (including scrollback if handled by the `EventsScreen` subclass used) into a byte string, effectively serializing the visible terminal content with ANSI escape codes.
     *   `get_terminal_cursor_position() -> tuple[int, int] | None`: Returns the current cursor position (`(row, col)`) as tracked by the `pyte.Screen`.
-*   **`EventsScreen`:** A subclass of `pyte.Screen` used by `PersistentInterface` to handle events like title changes and manage a scrollback buffer within `pyte` itself.
+*   **`EventsScreen`:** A subclass of `pyte.Screen` used by `Interface` to handle events like title changes and manage a scrollback buffer within `pyte` itself.
 *   `scrollback_buffer_size` (constructor argument): Configures the size of the scrollback buffer managed by `EventsScreen`.
 
-`PersistentInterface` is suitable for backends that heavily rely on terminal escape codes for formatting, cursor movement, and other advanced terminal features, such as shells or full-screen terminal applications. `SocketInterface` and the shell interface used by `sioba_nicegui.ShellXTerm` are examples that build upon `PersistentInterface`.
+The `Interface` class itself is typically not instantiated directly but serves as a blueprint for concrete implementations like `FunctionInterface` or `SocketInterface`.
 
 ## `EchoInterface`
 
@@ -92,11 +71,11 @@ If a terminal UI is connected to an `EchoInterface`, anything the user types wil
 
 ## `FunctionInterface`
 
-The `FunctionInterface` class (from `sioba.function`) extends `BufferedInterface` and is one of the most versatile interfaces. It allows you to run a Python function as the backend logic for a terminal session, enabling interactive text-based applications.
+The `FunctionInterface` class (from `sioba.function`) extends `Interface` and is one of the most versatile interfaces. It allows you to run a Python function as the backend logic for a terminal session, enabling interactive text-based applications.
 
 **Key Features:**
 
-*   **Inherits from `BufferedInterface`:** Retains scrollback buffer capabilities.
+*   **Inherits from `Interface`:** Retains scrollback buffer capabilities.
 *   **Runs a Python Function:** The core idea is to pass a callable (your Python function) to its constructor. This function then drives the terminal interaction.
     *   The function receives a reference to the `FunctionInterface` instance as its first argument, allowing it to call methods like `print()`, `input()`, etc.
 *   **Interactive I/O Methods:**
@@ -144,11 +123,11 @@ This example defines a function `my_terminal_app` that interacts with the user. 
 
 ## `SocketInterface`
 
-The `SocketInterface` class (from `sioba.socket`) extends `PersistentInterface` and is designed to connect a terminal UI to a network socket, effectively acting as a simple TCP client (like Telnet).
+The `SocketInterface` class (from `sioba.socket`) extends `Interface` and is designed to connect a terminal UI to a network socket, effectively acting as a simple TCP client (like Telnet).
 
 **Key Features:**
 
-*   **Inherits from `PersistentInterface`:** Benefits from `pyte`-based terminal emulation, allowing it to correctly interpret ANSI escape codes and manage screen state for interactions with remote servers that expect a terminal client.
+*   **Inherits from `Interface`:** Benefits from `pyte`-based terminal emulation, allowing it to correctly interpret ANSI escape codes and manage screen state for interactions with remote servers that expect a terminal client.
 *   **TCP Client:** Connects to a specified host and port.
     *   `connection` (constructor argument): A `ConnectionConfig` typed dictionary (e.g., `{"host": "example.com", "port": 23}`) is required to specify the target server.
 *   **Asynchronous I/O:**
@@ -207,8 +186,7 @@ The `sioba` interfaces facilitate communication between a data source/sink (the 
         *   The interface internally calls `await self.send_to_control(b"hello\r\n")`.
         *   `send_to_control` iterates through all registered `_on_send_from_xterm_callbacks`.
         *   A terminal UI component (like `sioba_nicegui.XTerm`) registers a callback here. This callback takes the data and updates the visual terminal display for the user.
-        *   If it's a `PersistentInterface`, the data is also fed to its `pyte.Stream` to update the virtual screen state.
-        *   If it's a `BufferedInterface`, the data is added to its scrollback buffer.
+        *   The data is also fed to its `pyte.Stream` to update the virtual screen state.
 
 4.  **Data Flow (Frontend to Backend):**
     *   When the user types in the terminal UI:

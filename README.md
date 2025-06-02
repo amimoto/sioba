@@ -12,7 +12,7 @@ The name "sioba" is both a mild pun on soba noodles (evoking the imagery of I/O 
 
 The sioba ecosystem is organized into several key modules:
 
-- **`sioba`**: This is the core library. It provides the fundamental `Interface` base classes (`Interface`, `BufferedInterface`, `PersistentInterface`) that define the contract for communication between backends and frontends. It also includes concrete interface implementations like:
+- **`sioba`**: This is the core library. It provides the fundamental `Interface` base class that define the contract for communication between backends and frontends. It also includes concrete interface implementations like:
     - `EchoInterface`: A simple interface that echoes input back.
     - `FunctionInterface`: An interface that runs a Python function as the backend, enabling interactive text-based applications.
     - `SocketInterface`: An interface that connects to a network socket, behaving like a basic Telnet client.
@@ -64,19 +64,12 @@ The `Interface` subclasses in `sioba` are responsible for managing the specifics
         - Lifecycle methods: `start()`, `shutdown()`.
         - I/O methods: `send_to_control(data: bytes)` for sending data to the frontend, and `receive_from_control(data: bytes)` for receiving data from the frontend.
     - Manages callbacks for events: `on_send_to_control` (triggered when data should be sent to the frontend), `on_shutdown` (triggered when the interface is shutting down).
-
-- **`sioba.base.BufferedInterface`**:
-    - A subclass of `Interface`.
-    - Adds a scrollback buffer, allowing it to store a history of output that has been sent to the control. This is useful for frontends that might connect after some output has already been generated or that need to redraw history.
-
-- **`sioba.base.PersistentInterface`**:
-    - A subclass of `Interface`.
     - Integrates with the `pyte` library for more sophisticated terminal emulation. It maintains a virtual terminal screen, processes ANSI escape codes, and keeps track of cursor position and screen content. This is ideal for backends that expect a true terminal environment (e.g., many command-line applications, Telnet/SSH sessions).
 
 - **Concrete Interface Implementations**:
     - **`sioba.echo.EchoInterface(Interface)`**: A very basic interface that simply echoes any data it receives from the control back to the control. Useful for testing the frontend connection.
-    - **`sioba.function.FunctionInterface(BufferedInterface)`**: Runs a target Python function in a separate thread as the backend. It provides `print()`, `input()`, and `getpass()` methods that are redirected to interact with the connected frontend control.
-    - **`sioba.socket.SocketInterface(PersistentInterface)`**: Connects to a specified network host and port (TCP client), acting like a simple Telnet client. It uses `PersistentInterface` to handle terminal escape codes from the remote server.
+    - **`sioba.function.FunctionInterface(Interface)`**: Runs a target Python function in a separate thread as the backend. It provides `print()`, `input()`, and `getpass()` methods that are redirected to interact with the connected frontend control.
+    - **`sioba.socket.SocketInterface(Interface)`**: Connects to a specified network host and port (TCP client), acting like a simple Telnet client. It uses `Interface` to handle terminal escape codes from the remote server.
 
 - **`sioba_nicegui.xterm.XTerm`**:
     - A UI component for the NiceGUI web framework.

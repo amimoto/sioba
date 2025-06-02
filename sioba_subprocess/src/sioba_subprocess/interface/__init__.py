@@ -1,10 +1,8 @@
 from typing import Callable
 
-from sioba import PersistentInterface
+from sioba import register_interface
 
 from loguru import logger
-
-from typing import Callable
 
 try:
     from .subprocess.posix import PosixInterface as SubprocessInterface
@@ -16,6 +14,7 @@ except ImportError as e:
     except ImportError as e:
         raise ImportError("No suitable subprocess interface found")
 
+@register_interface("exec")
 class ShellInterface(SubprocessInterface):
     @logger.catch
     def __init__(

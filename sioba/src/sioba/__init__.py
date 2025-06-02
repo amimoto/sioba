@@ -1,19 +1,18 @@
 __all__ = [
-    'Interface',
-    'BufferedInterface',
-    'FunctionInterface',
-    'PersistentInterface',
-    'EchoInterface',
-    'SocketInterface',
-    'InterfaceState',
+    "Interface",
+    "FunctionInterface",
+    "EchoInterface",
+    "SocketInterface",
+    "InterfaceState",
+    "register_interface",
+    "init_interface",
 ]
 
 from .base import (
     Interface,
-    BufferedInterface,
-    PersistentInterface,
     InterfaceState,
 )
 from .function import FunctionInterface
 from .echo import EchoInterface
 from .socket import SocketInterface
+from .registry import register_interface, init_interface

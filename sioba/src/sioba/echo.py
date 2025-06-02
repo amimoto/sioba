@@ -1,7 +1,9 @@
 from .base import Interface, InterfaceConfig
+from .registry import register_interface
 
 from loguru import logger
 
+@register_interface("echo")
 class EchoInterface(Interface):
 
     default_config = InterfaceConfig(

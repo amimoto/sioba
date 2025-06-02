@@ -1,54 +1,105 @@
+from __future__ import annotations
+
+from typing import (
+    Callable,
+    Optional,
+)
+
 import asyncio
-from typing import Callable
-from .errors import InterfaceNotStarted, InterfaceError
-from sioba.errors import TerminalClosedError
 import uuid
-import pyte
-from enum import Enum
-from typing import Optional, Any, Generator
-from dataclasses import dataclass, asdict
+import enum
 
 from loguru import logger
+import pyte
 
-class InterfaceState(Enum):
+from .errors import TerminalClosedError, InterfaceNotStarted, InterfaceError
+from .structs import (
+    InterfaceConfig,
+    URIDetails,
+    parse_uri,
+)
+
+
+###########################################################
+# Interface State Enum
+###########################################################
+
+class InterfaceState(enum.Enum):
+    """Represents the lifecycle states of an Interface:
+    
+    INITIALIZED - Interface instance created but not yet started
+    STARTED - Interface is running and processing IO
+    SHUTDOWN - Interface has been terminated and resources cleaned up
+    """
     INITIALIZED = 0
     STARTED = 1
     SHUTDOWN = 2
 
-INTERFACE_THREAD = None
-INTERFACE_LOOP = None
+###########################################################
+# Screen Persistence via pytE
+###########################################################
+
+class EventsScreen(pyte.Screen):
+
+    scrollback_buffer: list
+    scrollback_buffer_size: int
+
+    def __init__(
+            self,
+            columns: int,
+            lines: int,
+            on_set_terminal_title: Optional[Callable] = None,
+            scrollback_buffer_size: int = 10_000,
+
+        ) -> None:
+        self.on_set_terminal_title_handle = on_set_terminal_title
+        self.scrollback_buffer = []
+        self.scrollback_buffer_size = scrollback_buffer_size
+        super().__init__(columns=columns, lines=lines)
+
+    def set_terminal_title(self, param: str) -> None:
+        super().set_terminal_title(param)
+        if self.on_set_terminal_title_handle:
+            self.on_set_terminal_title_handle(param)
+
+    def index(self) -> None:
+        """Move the cursor down one line in the same column. If the
+        cursor is at the last line, create a new line at the bottom.
+        """
+        top, bottom = self.margins or pyte.screens.Margins(0, self.lines - 1)
+        if self.cursor.y == bottom:
+            # TODO: mark only the lines within margins?
+            self.dirty.update(range(self.lines))
+
+            # Save the line going out of scope into the scrollback buffer
+            self.scrollback_buffer.append(self.buffer[top])
+            while len(self.scrollback_buffer) > self.scrollback_buffer_size:
+                self.scrollback_buffer.pop(0)
+
+            for y in range(top, bottom):
+                self.buffer[y] = self.buffer[y + 1]
+            self.buffer.pop(bottom, None)
+        else:
+            self.cursor_down()
 
 ###########################################################
 # Basic Interface Class that provides what XTerm expects
 ###########################################################
 
-@dataclass
-class InterfaceConfig:
-    rows: Optional[int] = None
-    cols: Optional[int] = None
-    encoding: Optional[str] = None
-    convertEol: Optional[bool] = None
 
-    def items(self) -> Generator[tuple[str, Any], None, None]:
-        """Return all keys and values."""
-        for k, v in asdict(self).items():
-            yield (k, v)
 
-    def update(self, options: "InterfaceConfig") -> None:
-        """Update the configuration with another TerminalConfig instance."""
-        for k, v in asdict(options).items():
-            if v is not None:
-                setattr(self, k, v)
-
-    def copy(self) -> "InterfaceConfig":
-        """Return a copy of the configuration."""
-        return InterfaceConfig(**asdict(self))
-
+DEFAULT_ROWS = 24
+DEFAULT_COLS = 80
+DEFAULT_AUTO_SHUTDOWN = True
+DEFAULT_SCROLLBACK_BUFFER_SIZE = 10_000
 DEFAULT_CONFIG = InterfaceConfig(
-    rows=24,
-    cols=80,
+    rows=DEFAULT_ROWS,
+    cols=DEFAULT_COLS,
     encoding="utf-8",
     convertEol=False,
+    auto_shutdown=DEFAULT_AUTO_SHUTDOWN,
+    scrollback_buffer_size=DEFAULT_SCROLLBACK_BUFFER_SIZE,
+    title="",
 )
 
 class Interface:
@@ -70,50 +121,67 @@ class Interface:
 
     """
 
+    # Connection URI for the interface.
+    uri: Optional[str]
+    uri_details: Optional[URIDetails]
+
     # The default configuration for the interface type. These are defaults for the
     # protocol level. These values can be overwritten on a case by case basis as needed
     # via the interface_config argument. We don't use config so that it becomes available
     # for the protocol level configuration
-    default_config: Optional[InterfaceConfig] = None
-    interface_config: Optional[InterfaceConfig] = None
+    default_config: Optional[InterfaceConfig]
+    interface_config: InterfaceConfig
 
     # The state of the interface. When initialized it's InterfaceState.INITIALIZED
-    state = None
+    state: InterfaceState
 
     # This counds the number of gui controls referencing this interface.
     # Using this and the current interface state, we can figure out what the 
-    reference_count: int = 0
+    reference_count: int
+
+    # For persistence
+    screen: EventsScreen
+    stream: pyte.Stream
 
     #######################################
     # Basic lifecycling handling
     #######################################
 
     def __init__(self,
-                 on_receive_from_control: Callable = None,
-                 on_send_to_control: Callable = None,
-                 on_shutdown: Callable = None,
-                 on_set_terminal_title: Callable = None,
-                 cols: int = 80,
-                 rows: int = 24,
-                 auto_shutdown: bool = True,
-                 interface_config: Optional[InterfaceConfig] = None,
-                 ) -> None:
+                uri: Optional[str] = None,
+                interface_config: Optional[InterfaceConfig] = None,
+                on_receive_from_control: Optional[Callable] = None,
+                on_send_to_control: Optional[Callable] = None,
+                on_shutdown: Optional[Callable] = None,
+                on_set_terminal_title: Optional[Callable] = None,
+                ) -> None:
 
+        # Basic state and configuration
         self.id = str(uuid.uuid4())
-        self.title = ""
+        self.state = InterfaceState.INITIALIZED
+
+        # For the number of GUI controls referencing this interface.
         self.reference_count = 0
 
+        # Holds infomation on each terminial client
+        # Things such as rows, cols
+        self.term_clients = {}
+
+        # Setup the interface configuration.
         self.interface_config = DEFAULT_CONFIG.copy()
         if self.default_config:
             self.interface_config.update(self.default_config)
         if interface_config:
             self.interface_config.update(interface_config)
+        if uri:
+            self.uri = uri
+            self.interface_config.load_uri_details(parse_uri(uri))
 
+        # Setup the callback registry
         self._on_receive_from_control_callbacks = set()
         self._on_send_from_xterm_callbacks = set()
         self._on_shutdown_callbacks = set()
         self._on_set_terminal_title_callbacks = set()
-        self.state = InterfaceState.INITIALIZED
         if on_receive_from_control:
             self.on_receive_from_control(on_receive_from_control)
         if on_send_to_control:
@@ -123,13 +191,15 @@ class Interface:
         if on_set_terminal_title:
             self.on_set_terminal_title(on_set_terminal_title)
 
-        # Holds infomation on each terminial client
-        # Things such as rows, cols
-        self.term_clients = {}
+        # Persistence support
+        self.screen = EventsScreen(
+            columns=self.interface_config.cols or DEFAULT_COLS,
+            lines=self.interface_config.rows or DEFAULT_ROWS,
+            on_set_terminal_title=self.on_set_terminal_title_handle,
+            scrollback_buffer_size=self.interface_config.scrollback_buffer_size or DEFAULT_SCROLLBACK_BUFFER_SIZE,
+        )
 
-        self.auto_shutdown = auto_shutdown
-        self.cols = cols
-        self.rows = rows
+        self.stream = pyte.Stream(self.screen)
 
         # Now do the subclass specific initialization
         self.init_interface()
@@ -161,7 +231,7 @@ class Interface:
         return self
 
     async def start_interface(self) -> bool:
-        pass
+        return True
 
     @logger.catch
     async def shutdown(self) -> None:
@@ -218,6 +288,24 @@ class Interface:
         if self.interface_config.convertEol:
             data = data.replace(b"\r", b"\r\n")
 
+        # updates the pyte screen before passing data through
+        try:
+            if not isinstance(data, bytes):
+                raise InterfaceError(f"Expected bytes, got {type(data)}")
+            self.stream.feed(data.decode('utf-8'))
+        except TypeError as ex:
+            # We occasionally get errors like
+            # TypeError: Screen.select_graphic_rendition() got
+            # an unexpected keyword argument 'private'. It might be
+            # related to using xterm rather than vt100 see:
+            # https://github.com/selectel/pyte/issues/126
+            if ex.args and "unexpected keyword argument 'private'" in ex.args[0]:
+                pass
+            else:
+                raise
+        except UnicodeDecodeError:
+            self.stream.feed(bytes(data).decode('utf-8', errors='replace'))
+
         # Dispatch to all listeners
         for on_send in self._on_send_from_xterm_callbacks:
             logger.debug(f"Sending data to xterm: {data}")
@@ -247,7 +335,7 @@ class Interface:
     @logger.catch
     def on_set_terminal_title_handle(self, title: str) -> None:
         """Callback when the window title is set."""
-        self.title = title
+        self.interface_config.title = title
         for on_set_terminal_title in self._on_set_terminal_title_callbacks:
             res = on_set_terminal_title(self, title)
             if asyncio.iscoroutine(res):
@@ -267,220 +355,8 @@ class Interface:
 
     def set_terminal_size(self, rows: int, cols: int, xpix: int=0, ypix: int=0) -> None:
         """Sets the shell window size."""
-        pass
-
-    def get_terminal_buffer(self) -> bytes:
-        """Get the current screen contents as a string"""
-        return b""
-
-    def get_terminal_cursor_position(self) -> tuple[int,int]|None:
-        return None
-
-    def update_terminal_metadata(self, client_id:str, data:dict) -> None:
-        self.term_clients.setdefault(client_id, {})
-        self.term_clients[client_id].update(data)
-
-        logger.debug(f"Updated client {client_id} metadata: {data}")
-
-        min_row = None
-        min_col = None
-        for client_id, data in self.term_clients.items():
-            if min_row is None or data["rows"] < min_row:
-                min_row = data["rows"]
-            if min_col is None or data["cols"] < min_col:
-                min_col = data["cols"]
-        self.rows = min_row
-        self.cols = min_col
-
-        self.set_terminal_size(rows=self.rows, cols=self.cols)
-
-    def get_terminal_metadata(self, client_id:str) -> dict:
-        if client_id not in self.term_clients:
-            return {}
-
-        return self.term_clients[client_id]
-
-    def reference_increment(self):
-        print(f"Reference count: {self.reference_count}. Incrementing")
-        self.reference_count += 1
-
-    def reference_decrement(self):
-        print(f"Reference count: {self.reference_count}. Decrementing")
-        self.reference_count -= 1
-        if self.reference_count <= 0 and self.auto_shutdown:
-            asyncio.create_task(
-                self.shutdown()
-            )
-
-###########################################################
-# Output buffer
-###########################################################
-
-class BufferedInterface(Interface):
-
-    scrollback_buffer: list = None
-    scrollback_buffer_size: int = 10_000
-
-    def __init__(self,
-                scrollback_buffer_size: int = 10_000,
-
-                # From superclass
-                on_receive_from_control: Callable = None,
-                on_send_to_control: Callable = None,
-                on_shutdown: Callable = None,
-                on_set_terminal_title: Callable = None,
-                cols: int = 80,
-                rows: int = 24,
-                auto_shutdown: bool = True,
-            ) -> None:
-        self.scrollback_buffer_size = scrollback_buffer_size
-        super().__init__(
-            on_receive_from_control=on_receive_from_control,
-            on_send_to_control=on_send_to_control,
-            on_shutdown=on_shutdown,
-            on_set_terminal_title=on_set_terminal_title,
-            cols=cols,
-            rows=rows,
-            auto_shutdown=auto_shutdown,
-        )
-
-    def init_interface(self):
-        self.scrollback_buffer = b""
-
-    async def send_to_control(self, data: bytes):
-        if self.state != InterfaceState.STARTED:
-            raise InterfaceNotStarted(f"Unable to send data {repr(data)}, interface not started")
-
-        # Don't bother if we don't have data
-        if not data:
-            return
-
-        # Add to the scrollback buffer
-        self.scrollback_buffer += data
-        delta = self.scrollback_buffer_size - len(self.scrollback_buffer)
-        if delta < 0:
-            self.scrollback_buffer = self.scrollback_buffer[-delta:]
-
-        return await super().send_to_control(data)
-
-    def get_terminal_buffer(self) -> bytes:
-        """Get the current screen contents as a string"""
-        return self.scrollback_buffer
-
-###########################################################
-# Screen Persistance via pytE
-###########################################################
-
-class EventsScreen(pyte.Screen):
-
-    scrollback_buffer = None
-    scrollback_buffer_size = None
-
-    def __init__(
-            self,
-            columns: int,
-            lines: int,
-            on_set_terminal_title: Callable = None,
-            scrollback_buffer_size: int = 10_000,
-
-        ) -> None:
-        self.on_set_terminal_title_handle = on_set_terminal_title
-        self.scrollback_buffer = []
-        self.scrollback_buffer_size = scrollback_buffer_size
-        super().__init__(columns=columns, lines=lines)
-
-    def set_terminal_title(self, param: str) -> None:
-        super().set_terminal_title(param)
-        if self.on_set_terminal_title_handle:
-            self.on_set_terminal_title_handle(param)
-
-    def index(self) -> None:
-        """Move the cursor down one line in the same column. If the
-        cursor is at the last line, create a new line at the bottom.
-        """
-        top, bottom = self.margins or pyte.screens.Margins(0, self.lines - 1)
-        if self.cursor.y == bottom:
-            # TODO: mark only the lines within margins?
-            self.dirty.update(range(self.lines))
-
-            # Save the line going out of scope into the scrollback buffer
-            self.scrollback_buffer.append(self.buffer[top])
-            while len(self.scrollback_buffer) > self.scrollback_buffer_size:
-                self.scrollback_buffer.pop(0)
-
-            for y in range(top, bottom):
-                self.buffer[y] = self.buffer[y + 1]
-            self.buffer.pop(bottom, None)
-        else:
-            self.cursor_down()
-
-class PersistentInterface(Interface):
-    """Wraps an InvokeProcess to provide pyte terminal emulation capabilities"""
-
-    def __init__(self,
-                scrollback_buffer_size: int = 10_000,
-
-                # From superclass
-                on_receive_from_control: Callable = None,
-                on_send_to_control: Callable = None,
-                on_shutdown: Callable = None,
-                on_set_terminal_title: Callable = None,
-                cols: int = 80,
-                rows: int = 24,
-                auto_shutdown: bool = True,
-            ) -> None:
-        self.scrollback_buffer_size = scrollback_buffer_size
-        super().__init__(
-            on_receive_from_control=on_receive_from_control,
-            on_send_to_control=on_send_to_control,
-            on_shutdown=on_shutdown,
-            on_set_terminal_title=on_set_terminal_title,
-            cols=cols,
-            rows=rows,
-            auto_shutdown=auto_shutdown,
-        )
-
-    def init_interface(self):
-        # Initialize pyte screen and stream
-        super().init_interface()
-
-        self.screen = EventsScreen(
-            columns=self.cols,
-            lines=self.rows,
-            on_set_terminal_title=self.on_set_terminal_title_handle,
-            scrollback_buffer_size=self.scrollback_buffer_size,
-        )
-
-        self.stream = pyte.Stream(self.screen)
-
-    @logger.catch
-    async def send_to_control(self, data: bytes):
-        """Writes data to the shell."""
-        await super().send_to_control(data)
-
-        """Handler that updates the pyte screen before passing data through"""
-        try:
-            if not isinstance(data, bytes):
-                raise InterfaceError(f"Expected bytes, got {type(data)}")
-            self.stream.feed(data.decode('utf-8'))
-        except TypeError as ex:
-            # We occasionally get errors like
-            # TypeError: Screen.select_graphic_rendition() got
-            # an unexpected keyword argument 'private'. It might be
-            # related to using xterm rather than vt100 see:
-            # https://github.com/selectel/pyte/issues/126
-            if ex.args and "unexpected keyword argument 'private'" in ex.args[0]:
-                pass
-            else:
-                raise
-        except UnicodeDecodeError:
-            self.stream.feed(data.decode('utf-8', errors='replace'))
-
-    @logger.catch
-    def set_terminal_size(self, rows: int, cols: int, xpix: int=0, ypix: int=0):
-        """Sets the shell window size."""
-        super().set_terminal_size(rows=rows, cols=cols, xpix=xpix, ypix=ypix)
         self.screen.resize(lines=rows, columns=cols)
+
 
     def dump_screen_state(self, screen: pyte.Screen) -> bytes:
         """Dumps current screen state to an ANSI file with efficient style management"""
@@ -604,7 +480,6 @@ class PersistentInterface(Interface):
         buf += f"\033[{screen.lines};1H"
         return buf.encode()
 
-    @logger.catch
     def get_terminal_buffer(self) -> bytes:
         """Get the current screen contents as a string"""
         return self.dump_screen_state(self.screen)
@@ -614,5 +489,40 @@ class PersistentInterface(Interface):
         """Get the current cursor position"""
         return (self.screen.cursor.y, self.screen.cursor.x)
 
+    def update_terminal_metadata(self, client_id:str, data:dict) -> None:
+        self.term_clients.setdefault(client_id, {})
+        self.term_clients[client_id].update(data)
 
+        logger.debug(f"Updated client {client_id} metadata: {data}")
+
+        min_row = None
+        min_col = None
+        for client_id, data in self.term_clients.items():
+            if min_row is None or data["rows"] < min_row:
+                min_row = data["rows"]
+            if min_col is None or data["cols"] < min_col:
+                min_col = data["cols"]
+
+        self.interface_config.rows = min_row
+        self.interface_config.cols = min_col
+
+        self.set_terminal_size(rows=min_row, cols=min_col)
+
+    def get_terminal_metadata(self, client_id:str) -> dict:
+        if client_id not in self.term_clients:
+            return {}
+        return self.term_clients[client_id]
+
+    def reference_increment(self):
+        print(f"Reference count: {self.reference_count}. Incrementing")
+        self.reference_count += 1
+
+    def reference_decrement(self):
+        print(f"Reference count: {self.reference_count}. Decrementing")
+        self.reference_count -= 1
+        if self.reference_count <= 0:
+            if self.interface_config.auto_shutdown:
+                asyncio.create_task(
+                    self.shutdown()
+                )
 
