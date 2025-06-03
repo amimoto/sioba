@@ -209,6 +209,89 @@ The `sioba` interfaces facilitate communication between a data source/sink (the 
 
 The callback system (`on_send_to_control`, `on_receive_from_control`, etc.) is crucial. It decouples the `sioba` interfaces from any specific UI implementation. A UI component "subscribes" to these events to know when to update its display or when to forward user input.
 
+## Interface Registry and Dynamic Discovery
+
+`sioba` includes a flexible mechanism for registering and discovering interface handlers, allowing applications and plugins to define and use custom interfaces identified by URI schemes.
+
+### Core Components:
+
+*   **`sioba.registry.INTERFACE_REGISTRY`**: A dictionary mapping URI schemes (strings) to interface classes or factory functions.
+*   **`@sioba.registry.register_interface(*schemes)` (decorator)**:
+    This decorator allows you to manually associate an interface class with one or more URI schemes. When a class is decorated (e.g., `@register_interface("mycustomscheme")`), it gets added to the `INTERFACE_REGISTRY`.
+
+    ```python
+    from sioba.registry import register_interface
+    from sioba.base import Interface
+
+    @register_interface("custom")
+    class MyCustomInterface(Interface):
+        # ... implementation ...
+        pass
+    ```
+
+*   **Entry Point Discovery (`sioba.interfaces` group)**:
+    Beyond manual registration, `sioba` can discover interfaces provided by other installed Python packages through the `importlib.metadata.entry_points` mechanism. Packages can declare their interfaces under the group name `sioba.interfaces`.
+
+    For example, a `pyproject.toml` of a plugin package might include:
+
+    ```toml
+    [project.entry-points."sioba.interfaces"]
+    plugin-scheme = "my_plugin_package.module:PluginInterfaceClass"
+    another-scheme = "my_plugin_package.module:AnotherInterface"
+    ```
+    When `sioba` needs to find an interface for a scheme like `"plugin-scheme"`, it will look for such entry points if the scheme isn't already in its internal `INTERFACE_REGISTRY`.
+
+### `sioba.registry.init_interface(uri, ...)`
+
+This is the primary factory function for creating interface instances. It takes a URI string (e.g., `"echo://"` or `"socket://host:port"`) and other optional parameters:
+
+```python
+from sioba.registry import init_interface
+from sioba.structs import InterfaceConfig
+
+# Example: Initialize a registered Echo interface
+echo_config = InterfaceConfig(convertEol=True)
+echo_instance = init_interface("echo://", interface_config=echo_config)
+
+# Example: Initialize a Socket interface (assuming it's registered or discoverable)
+# For SocketInterface, connection parameters are often part of the URI
+# or passed via **kwargs if the specific interface class supports it.
+# The exact kwargs will depend on the interface being initialized.
+socket_instance = init_interface("socket://telehack.com:23")
+
+# Example: Using a custom, discoverable interface
+# If 'plugin-scheme' is defined in an entry point:
+# custom_instance = init_interface("plugin-scheme://some_details")
+```
+
+**How `init_interface` works:**
+
+1.  It parses the URI to extract the `scheme`.
+2.  It first checks the internal `INTERFACE_REGISTRY` for a handler associated with this scheme.
+3.  If not found, it queries `entry_points().select(group="sioba.interfaces")` to find a matching entry point by name.
+    *   If a matching entry point is found, it loads the class/factory specified by the entry point.
+    *   It verifies that the loaded handler is a subclass of `sioba.base.Interface`.
+    *   The newly discovered handler is then cached in `INTERFACE_REGISTRY` for quicker access next time.
+4.  If no handler can be found (neither in the registry nor via entry points), it raises a `ValueError`.
+5.  Once the handler class/factory is identified, `init_interface` instantiates it, passing the `uri`, `interface_config`, standard callbacks (`on_send_to_control`, `on_receive_from_control`, `on_shutdown`, `on_set_terminal_title`), and any additional `**kwargs` provided to `init_interface`. These `**kwargs` are passed through to the constructor of the specific interface class.
+
+This system allows for a highly extensible architecture where `sioba` itself doesn't need to know about all possible interfaces beforehand. As long as an interface is registered (either directly or via entry points), `init_interface` can be used to create an instance of it.
+
+### `sioba.registry.list_interfaces()`
+
+To get a list of available interface schemes that can be discovered via entry points, you can use:
+
+```python
+from sioba.registry import list_interfaces
+
+available_schemes = list_interfaces()
+print(f"Available interface schemes from entry points: {available_schemes}")
+# Note: This list comes from entry points and might not include
+# interfaces manually registered only via the @register_interface decorator
+# or built-in interfaces if they are not also listed as entry points.
+```
+This function specifically queries the `sioba.interfaces` entry point group.
+
 ## Installation
 
 The `sioba` module is a core component of the `sioba_nicegui` package. It is automatically installed when you install `sioba_nicegui`.
@@ -258,3 +341,5 @@ ui.on_page_ready(setup_terminal)
 ```
 
 For more detailed examples and information on how to integrate these interfaces into a NiceGUI application, please refer to the main [`sioba_nicegui` README file](../README.md). That README covers `ShellXTerm` (which uses a specialized shell interface internally) and provides more context on building terminal UIs.
+
+The `sioba.registry.init_interface` function is a powerful low-level tool for creating and configuring interfaces. UI libraries built on top of `sioba`, such as `sioba_nicegui`, may leverage this to provide even more convenient helper methods. For example, a UI component like `sioba_nicegui.XTerm` might offer a `from_uri(uri_string, ...)` class method that internally uses `sioba.registry.init_interface` to set up both the backend interface and the UI component in a single step. Refer to the documentation of the specific UI library (e.g., `sioba_nicegui`) for details on such high-level helper functions.
