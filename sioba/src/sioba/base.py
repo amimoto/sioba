@@ -19,7 +19,6 @@ from .structs import (
     parse_uri,
 )
 
-
 ###########################################################
 # Interface State Enum
 ###########################################################
@@ -169,7 +168,7 @@ class Interface:
 
         # Setup the interface configuration.
         self.interface_config = DEFAULT_CONFIG.copy()
-        if self.default_config:
+        if hasattr(self, "default_config") and self.default_config:
             self.interface_config.update(self.default_config)
         if interface_config:
             self.interface_config.update(interface_config)

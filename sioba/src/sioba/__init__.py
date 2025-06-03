@@ -6,6 +6,7 @@ __all__ = [
     "InterfaceState",
     "register_interface",
     "init_interface",
+    "list_interfaces",
 ]
 
 from .base import (
@@ -15,4 +16,4 @@ from .base import (
 from .function import FunctionInterface
 from .echo import EchoInterface
 from .socket import SocketInterface
-from .registry import register_interface, init_interface
+from .registry import register_interface, init_interface, list_interfaces

@@ -49,3 +49,6 @@ test = [
 windows = [
     "winpty>=0.4.3"
 ]
+
+[project.entry-points]
+"sioba.interfaces".exec = "sioba_subprocess.interface:SubprocessInterface"

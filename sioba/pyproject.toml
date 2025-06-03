@@ -36,3 +36,7 @@ addopts = "--driver Chrome"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
+
+[project.entry-points]
+"sioba.interfaces".echo = "sioba.echo:EchoInterface"
+"sioba.interfaces".tcp  = "sioba.socket:SocketInterface"
