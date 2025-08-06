@@ -13,14 +13,14 @@ class WindowsInterface(Interface):
     def __init__(self,
                  invoke_command: str,
                  shutdown_command: str = None,
-                 on_receive_from_control: Callable = None,
+                 on_receive_from_frontend: Callable = None,
                  on_shutdown: Callable = None,
                  cwd: str = None,
                  *args,
                  **kwargs
                  ):
         super().__init__(
-            on_receive_from_control=on_receive_from_control,
+            on_receive_from_frontend=on_receive_from_frontend,
             on_shutdown=on_shutdown,
             *args,
             **kwargs
@@ -62,7 +62,7 @@ class WindowsInterface(Interface):
         while self.process.isalive():
             data = self.process.read()
             if data:
-                asyncio.run(self.send_to_control(data.encode()))
+                asyncio.run(self.send_to_frontend(data.encode()))
 
     @logger.catch
     def set_terminal_size(self, rows: int, cols: int, xpix: int = 0, ypix: int = 0):
@@ -72,12 +72,12 @@ class WindowsInterface(Interface):
         super().set_terminal_size(rows=rows, cols=cols)
 
     @logger.catch
-    async def receive_from_control(self, data: bytes):
+    async def receive_from_frontend(self, data: bytes):
         """Writes data to the shell."""
         if self.state != InterfaceState.STARTED:
             return
         self.process.write(data.decode())
-        await super().receive_from_control(data)
+        await super().receive_from_frontend(data)
 
     @logger.catch
     async def shutdown_interface(self) -> None:

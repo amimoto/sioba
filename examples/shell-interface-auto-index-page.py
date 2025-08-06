@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from sioba_subprocess.interface import ShellInterface
 from sioba_nicegui.xterm import XTermInterface
 
 #ShellInterface("cmd.exe")
-iface = ShellInterface("bash")
-xterm = XTermInterface(iface).classes("w-full")
+#iface = ShellInterface("bash")
+interface, xterm = XTermInterface.from_uri("exec://bash").classes("w-full")
 
 # Make sure static files can be found
 try:

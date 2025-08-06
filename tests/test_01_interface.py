@@ -49,7 +49,7 @@ async def test_io():
 async def test_subclass():
     # Subclassing Interface test
     class Subclass(Interface):
-        def init_interface(self):
+        def interface_from_uri(self):
             self.captured = b""
 
         async def write(self, data: bytes):

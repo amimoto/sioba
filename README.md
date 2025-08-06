@@ -54,7 +54,7 @@ The core concept of `sioba` revolves around its `Interface` classes, which act a
 
 - **Frontend/Control**: This is the user-facing component that displays output from the backend and sends user input to it. Typically, this is a terminal emulator, like the `XTerm` component provided by `sioba_nicegui`.
 
-The `Interface` subclasses in `sioba` are responsible for managing the specifics of communication with their respective backends and relaying data to and from the connected frontend control. They use a system of callbacks (e.g., `on_send_to_control`, `on_shutdown`) to signal events to the frontend.
+The `Interface` subclasses in `sioba` are responsible for managing the specifics of communication with their respective backends and relaying data to and from the connected frontend control. They use a system of callbacks (e.g., `on_send_to_frontend`, `on_shutdown`) to signal events to the frontend.
 
 ## Key Classes and Relationships
 
@@ -62,8 +62,8 @@ The `Interface` subclasses in `sioba` are responsible for managing the specifics
     - The abstract base class for all interfaces.
     - Defines the core contract:
         - Lifecycle methods: `start()`, `shutdown()`.
-        - I/O methods: `send_to_control(data: bytes)` for sending data to the frontend, and `receive_from_control(data: bytes)` for receiving data from the frontend.
-    - Manages callbacks for events: `on_send_to_control` (triggered when data should be sent to the frontend), `on_shutdown` (triggered when the interface is shutting down).
+        - I/O methods: `send_to_frontend(data: bytes)` for sending data to the frontend, and `receive_from_frontend(data: bytes)` for receiving data from the frontend.
+    - Manages callbacks for events: `on_send_to_frontend` (triggered when data should be sent to the frontend), `on_shutdown` (triggered when the interface is shutting down).
     - Integrates with the `pyte` library for more sophisticated terminal emulation. It maintains a virtual terminal screen, processes ANSI escape codes, and keeps track of cursor position and screen content. This is ideal for backends that expect a true terminal environment (e.g., many command-line applications, Telnet/SSH sessions).
 
 - **Concrete Interface Implementations**:
@@ -76,8 +76,8 @@ The `Interface` subclasses in `sioba` are responsible for managing the specifics
     - Renders an `xterm.js` terminal emulator in the web browser.
     - It can be used standalone (e.g., for client-side JavaScript interactions) or, more commonly, connected to a `sioba.base.Interface` instance.
     - When connected to an interface:
-        - User input typed into the `XTerm` is sent to the interface's `receive_from_control` method.
-        - Data sent by the interface via `send_to_control` (triggered by its `on_send_to_control` callback) is written to the `XTerm` display.
+        - User input typed into the `XTerm` is sent to the interface's `receive_from_frontend` method.
+        - Data sent by the interface via `send_to_frontend` (triggered by its `on_send_to_frontend` callback) is written to the `XTerm` display.
 
 - **`sioba_subprocess.ShellXTerm`**:
     - Provided by the `sioba_subprocess` module (`from sioba_subprocess import ShellXTerm`).
@@ -90,11 +90,11 @@ The `Interface` subclasses in `sioba` are responsible for managing the specifics
 Consider a `FunctionInterface` connected to an `XTerm` component in a NiceGUI application:
 
 1.  **User Input**: The user types a command (e.g., "hello") into the `XTerm` component displayed in their web browser.
-2.  **Frontend to Interface**: The `XTerm` component captures this input and calls the `receive_from_control(b"hello\r")` method of the connected `FunctionInterface` instance.
+2.  **Frontend to Interface**: The `XTerm` component captures this input and calls the `receive_from_frontend(b"hello\r")` method of the connected `FunctionInterface` instance.
 3.  **Interface Processing**: The `FunctionInterface` receives the data. If its backend Python function was waiting on an `input()` call, this data is provided to that call.
 4.  **Backend Logic**: The Python function in the backend runs. For example, it might execute `name = input("Enter name: "); print(f"Hello, {name}")`.
 5.  **Backend Output**: When the function calls `print("Hello, username")`, the `FunctionInterface` captures this output.
-6.  **Interface to Frontend**: The `FunctionInterface` calls its `send_to_control(b"Hello, username\n")` method. This, in turn, triggers its `on_send_to_control` callback, which the `XTerm` component is listening to.
+6.  **Interface to Frontend**: The `FunctionInterface` calls its `send_to_frontend(b"Hello, username\n")` method. This, in turn, triggers its `on_send_to_frontend` callback, which the `XTerm` component is listening to.
 7.  **Display Output**: The `XTerm` component receives `b"Hello, username\n"` via the callback and displays "Hello, username" in the terminal emulator in the browser.
 
 A similar flow applies to other interfaces like `SocketInterface` or the one used by `ShellXTerm`, with the interface managing communication with its specific backend (a socket or a shell process).

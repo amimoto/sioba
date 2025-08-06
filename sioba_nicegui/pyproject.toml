@@ -7,9 +7,7 @@ authors = [
 ]
 dependencies = [
     "nicegui>=2.5.0",
-    "pyte>=0.8.2",
     "loguru>=0.7.2",
-    "janus>=2.0.0",
     "sioba>=0.2.20250413",
 ]
 requires-python = ">=3.9"

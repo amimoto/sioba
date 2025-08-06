@@ -51,4 +51,4 @@ windows = [
 ]
 
 [project.entry-points]
-"sioba.interfaces".exec = "sioba_subprocess.interface:SubprocessInterface"
+"sioba.interface".exec = "sioba_subprocess.interface:SubprocessInterface"

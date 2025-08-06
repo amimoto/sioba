@@ -3,7 +3,6 @@ import pytest
 from nicegui import ui
 
 from nicegui.testing import Screen
-from sioba.interface.base import Interface
 
 from sioba_nicegui.xterm import XTerm
 

@@ -1,6 +1,6 @@
 [project]
 name = "sioba"
-version = "0.2.20250413"
+version = "0.3.20250805"
 description = "Simple IO Backend Abstractions: A lightweight framework for unifying subprocess, socket, serial, and custom I/O backends via extensible interface."
 authors = [
     { name = "Aki Mimoto", email = "aki@bako.ca" }
@@ -8,6 +8,10 @@ authors = [
 dependencies = [
     "nicegui>=2.5.0",
     "loguru>=0.7.2",
+    "rich>=14.0.0",
+    "pyte>=0.8.2",
+    "loguru>=0.7.2",
+    "janus>=2.0.0",
 ]
 requires-python = ">=3.9"
 license = { text = "MIT-0" }
@@ -15,10 +19,6 @@ license = { text = "MIT-0" }
 [metadata]
 long_description = "file:README.md"
 long_description_content_type = "text/markdown"
-
-[tool.pdm]
-distribution = true
-build = { includes = ["src/sioba"] }
 
 [overrides]
 sioba = { path = "../sioba", develop = true }
@@ -32,11 +32,29 @@ Homepage = "https://github.com/amimoto/sioba"
 Issues = "https://github.com/amimoto/sioba/issues"
 
 [tool.pytest.ini_options]
-addopts = "--driver Chrome"
+#addopts = "--driver Chrome"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
 
+
+[tool.pdm]
+distribution = true
+build = { includes = ["src/sioba"] }
+
 [project.entry-points]
-"sioba.interfaces".echo = "sioba.echo:EchoInterface"
-"sioba.interfaces".tcp  = "sioba.socket:SocketInterface"
+"sioba.interface".echo = "sioba.interface.echo:EchoInterface"
+"sioba.interface".tcp  = "sioba.interface.socket:SocketInterface"
+"sioba.interface".ssl = "sioba.interface.socket:SecureSocketInterface"
+"sioba.interface".dummy = "sioba.interface.echo:EchoInterface"
+"sioba.buffer".none = "sioba.buffer.base:Buffer"
+"sioba.buffer".line = "sioba.buffer.line:LineBuffer"
+"sioba.buffer".terminal = "sioba.buffer.terminal:TerminalBuffer"
+
+[dependency-groups]
+dev = [
+    # Testing dependencies for the development environment
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.3",
+    "pytest-cov>=6.2.1",
+]

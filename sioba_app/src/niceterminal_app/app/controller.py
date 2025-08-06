@@ -30,7 +30,7 @@ class TerminalController:
 
     def new_interface(self, interface: xterm.Interface = None) -> xterm.Interface:
         new_interface = self.interfaces.new_interface(interface)
-        new_interface.on_set_terminal_title(self.on_set_terminal_title_handle)
+        new_interface.on_set_terminal_title(self.set_terminal_title)
         return new_interface
 
     async def close_interface(self, interface_id: str) -> None:
@@ -49,11 +49,11 @@ class TerminalController:
             # Remove the interface from the controller
             del self.interfaces[interface_id]
 
-    async def on_set_terminal_title_handle(self, interface: xterm.Interface, title: str) -> None:
+    async def set_terminal_title(self, interface: xterm.Interface, title: str) -> None:
         for terminal_ui in self.terminal_uis.values():
             if terminal_ui.is_deleted():
                 continue
-            await terminal_ui.on_set_terminal_title_handle(interface, title)
+            await terminal_ui.set_terminal_title(interface, title)
 
     def new_terminal(self, interface: xterm.Interface = None) -> None:
         """ Create a new terminal.

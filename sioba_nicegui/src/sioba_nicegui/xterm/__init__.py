@@ -1,2 +1,2 @@
-from .base import XTerm, TerminalState, TerminalConfig, TerminalMetadata
+from .base import XTerm, TerminalState, TerminalContext, TerminalMetadata
 from .interface import XTermInterface

@@ -2,8 +2,12 @@ from typing import Optional, Any, Callable, Tuple
 from .base import (
     XTerm,
     TerminalState,
-    TerminalClosedError,
-    ClientDeleted,
+)
+
+
+from sioba.errors import (
+    TerminalClosedError as TerminalClosedError,
+    ClientDeleted as ClientDeleted 
 )
 
 from datetime import datetime
@@ -13,7 +17,7 @@ from nicegui import core, ui
 from nicegui.client import Client
 import weakref
 
-from sioba import init_interface, Interface
+from sioba import interface_from_uri, Interface
 
 from loguru import logger
 
@@ -31,7 +35,7 @@ class XTermInterface(XTerm):
             **kwargs
         ) -> None:
         super().__init__(*args, **kwargs)
-        self._interface = interface
+        self.interface = interface
 
         if interface:
             self.connect_interface(interface)
@@ -40,32 +44,31 @@ class XTermInterface(XTerm):
     def from_uri(
             cls,
             uri: str,
-            interface_config: Optional[dict] = None,
-            on_receive_from_control: Optional[Callable] = None,
-            on_send_to_control: Optional[Callable] = None,
+            context: Optional[dict] = None,
+            on_receive_from_frontend: Optional[Callable] = None,
+            on_send_to_frontend: Optional[Callable] = None,
             on_shutdown: Optional[Callable] = None,
             on_set_terminal_title: Optional[Callable] = None,
-            *args,
             **kwargs
         ) -> Tuple[Interface, 'XTermInterface']:
         """Create an XTermInterface instance from a URI.
 
         Args:
             uri: The URI to connect to
-            interface_config: Optional configuration for the interface
+            context: Optional configuration for the interface
 
         Returns:
             A tuple containing the initialized Interface and the XTermInterface instance.
         """
-        interface = init_interface(
+        interface = interface_from_uri(
             uri=uri,
-            interface_config=interface_config,
-            on_receive_from_control=on_receive_from_control,
-            on_send_to_control=on_send_to_control,
+            context=context,
+            on_receive_from_frontend=on_receive_from_frontend,
+            on_send_to_frontend=on_send_to_frontend,
             on_shutdown=on_shutdown,
             on_set_terminal_title=on_set_terminal_title,
         )
-        return interface, cls(interface, *args, **kwargs)
+        return cls(interface, **kwargs)
 
     def connect_interface(self, interface: Interface) -> None:
         """Connect a terminal interface to this XTerm instance.
@@ -82,8 +85,8 @@ class XTermInterface(XTerm):
         if self.state == TerminalState.CLOSED:
             raise TerminalClosedError("Cannot connect interface to closed terminal")
 
-        self._interface = weakref.proxy(interface)
-        self._interface.reference_increment()
+        self.interface = weakref.proxy(interface)
+        self.interface.reference_increment()
 
         # Set up interface event handlers
         async def handle_interface_send(_, data: bytes) -> None:
@@ -94,14 +97,14 @@ class XTermInterface(XTerm):
         def handle_interface_exit(_) -> None:
             """Handle interface exit."""
             try:
-                self.write(b"[Interface Exited]\033[?25l\n\r")
+                self.write(b"[Interface Exited]\033[?25l\r\n")
             # We risk triggering this exception as it won't be surprising
             # if someone closes their tab
             except (TerminalClosedError, ClientDeleted):
                 pass
             self.state = TerminalState.DISCONNECTED
 
-        interface.on_send_to_control(handle_interface_send)
+        interface.on_send_to_frontend(handle_interface_send)
         interface.on_shutdown(handle_interface_exit)
 
         # Set up client event handlers
@@ -122,11 +125,11 @@ class XTermInterface(XTerm):
                 return
 
             interface.update_terminal_metadata(
-                client_id,
                 {
                     "rows": rows,
                     "cols": cols
-                }
+                },
+                client_id
             )
 
         async def handle_client_data(e: Any) -> None:
@@ -136,7 +139,7 @@ class XTermInterface(XTerm):
                 return
 
             if isinstance(data, str):
-                await interface.receive_from_control(base64.b64decode(data))
+                await interface.receive_from_frontend(base64.b64decode(data))
                 self.metadata.last_activity = datetime.now()
 
         async def handle_client_mount(e: Any) -> None:
@@ -154,9 +157,9 @@ class XTermInterface(XTerm):
             """Handle client connections."""
             logger.info(f"Client connected: {client.id}")
             self.state = TerminalState.CONNECTED
-            await self._interface.start()
+            await self.interface.start()
             self.sync_with_frontend()
-            self.sync_config()
+            self.sync_context()
 
         def handle_client_disconnect(e: Any) -> None:
             """Handle client disconnections."""
@@ -165,14 +168,14 @@ class XTermInterface(XTerm):
             client_id = f"{self.client.id}-{getattr(e, 'sid', '')}"
             self.metadata.connected_clients.discard(client_id)
 
-        self.config.update(interface.interface_config)
+        self.context.update(interface.context)
 
         self.client.on_connect(handle_client_connect)
         self.client.on_disconnect(handle_client_disconnect)
 
     def _handle_delete(self):
-        if self._interface:
-            self._interface.reference_decrement()
+        if self.interface:
+            self.interface.reference_decrement()
 
     def sync_with_frontend(self) -> None:
         """Synchronize the terminal state between backend and frontend.
@@ -191,13 +194,13 @@ class XTermInterface(XTerm):
         Raises:
             Exception: Logs any errors that occur during synchronization
         """
-        if core.loop is None or not self._interface:
+        if core.loop is None or not self.interface:
             logger.warning("No event loop available for terminal sync")
             return
 
         try:
             # Update screen content
-            data = self._interface.get_terminal_buffer()
+            data = self.interface.get_terminal_buffer()
             if isinstance(data, str):
                 data = data.encode()
 
@@ -209,12 +212,12 @@ class XTermInterface(XTerm):
                 )
 
             # Update cursor position
-            if cursor_position := self._interface.get_terminal_cursor_position():
+            if cursor_position := self.interface.get_terminal_cursor_position():
                 self.set_cursor_location(*cursor_position)
 
             # Check if interface is dead
-            if self._interface.is_shutdown():
-                self.write(b"[Interface Exited]\033[?25l\n\r")
+            if self.interface.is_shutdown():
+                self.write(b"[Interface Exited]\033[?25l\r\n")
                 self.state = TerminalState.DISCONNECTED
 
         except Exception as e:

@@ -1,11 +1,17 @@
 services:
-  src:
-    network_mode: "host"
+  host:
     build:
       context: .
+      dockerfile: ./docker/nginx/Dockerfile
+
+  src:
+    build:
+      context: .
+      dockerfile: ./docker/src/Dockerfile
     # Uncomment this if you wish to "check into" this container
     # and work within an isolated container
     #command: sleep infinity
+    network_mode: host
     volumes:
       - .:/src
       - ./volumes:/volumes

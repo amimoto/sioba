@@ -1,4 +1,4 @@
-from sioba_nicegui.xterm import XTerm, TerminalConfig
+from sioba_nicegui.xterm import XTerm, TerminalContext
 from sioba_subprocess.interface import ShellInterface, INVOKE_COMMAND
 from typing import Callable, Optional
 """
@@ -25,9 +25,9 @@ class ShellXTerm(XTerm):
         invoke_command: str = INVOKE_COMMAND,
         shutdown_command: str = None,
         cwd: str = None,
-        on_receive_from_control: Optional[Callable] = None,
+        on_receive_from_frontend: Optional[Callable] = None,
         on_shutdown: Optional[Callable] = None,
-        config: Optional[TerminalConfig] = None,
+        config: Optional[TerminalContext] = None,
         **kwargs
     ) -> None:
         """Initialize a shell-connected terminal.
@@ -41,13 +41,13 @@ class ShellXTerm(XTerm):
             config: Terminal configuration
             **kwargs: Additional arguments passed to XTerm
         """
-        config = config or TerminalConfig()
+        config = config or TerminalContext()
 
         interface = ShellInterface(
             invoke_command=invoke_command,
             shutdown_command=shutdown_command,
             cwd=cwd,
-            on_receive_from_control=on_receive_from_control,
+            on_receive_from_frontend=on_receive_from_frontend,
             on_shutdown=on_shutdown,
             rows=config.rows,
             cols=config.cols,

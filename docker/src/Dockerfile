@@ -68,7 +68,9 @@ RUN :\
     && apt clean \
     && rm -rf ~/.cache \
     && rm -rf /var/lib/apt/lists/* \
+    && :
     # 24.04 now includes a default ubuntu user. We will remove it for our user
+RUN : \
     && userdel -r ubuntu \
     # Create the new user
     && groupadd -f -g $CONTAINER_GID $USER \
@@ -77,18 +79,32 @@ RUN :\
     && chown -R $CONTAINER_UID:$CONTAINER_GID /app \
     && :
 
+USER $USER
+
 # Let's sit in the src directory by default
 WORKDIR /src
 
-USER $USER
+# Set up environment variables for `nvm`
+ENV NVM_DIR="/home/user/.nvm"
+ENV PATH=$NVM_DIR/versions/node/v18.18.2/bin:/home/$USER/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+RUN : \
+    && cd /tmp \
+    && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash \
+    && . "$NVM_DIR/nvm.sh" \
+    && nvm install stable \
+    && nvm alias default stable \
+    && npm install -g typescript \
+    && npm install -g npm@latest \
+    && :
 
 # Copy over the data files
 #COPY . /src
 COPY --chown=$USER:$USER . /src
 
-ENV PATH=/home/$USER/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Install NVM
 
-RUN /usr/bin/bash /src/docker/setup-env.sh
+RUN /usr/bin/bash /src/docker/src/setup-env.sh
 
 CMD sleep infinity
 

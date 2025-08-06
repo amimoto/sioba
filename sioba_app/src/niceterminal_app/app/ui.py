@@ -117,7 +117,7 @@ class TerminalUI:
     def request_close_tab(self, tab_id: str):
         self.controller.close_interface(tab_id)
 
-    async def on_set_terminal_title_handle(self, interface: xterm.Interface, title: str) -> None:
+    async def set_terminal_title(self, interface: xterm.Interface, title: str) -> None:
         if tab_data := self.tab_references.get(interface.id):
             tab_data["label"].set_text(f"{interface.creation_index}: {title}")
 

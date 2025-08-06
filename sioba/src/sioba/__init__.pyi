@@ -5,22 +5,15 @@ from .context import InterfaceContext as InterfaceContext
 from .interface.base import (
     Interface as Interface,
     InterfaceState as InterfaceState,
-    register_scheme as register_scheme,
-    interface_from_uri as interface_from_uri,
-    list_schemes as list_schemes,
-)
-
-from .buffer.base import (
-    register_buffer as register_buffer,
-    list_buffer_schemes as list_buffer_schemes,
-    buffer_from_uri as buffer_from_uri,
 )
 
 from .interface.function import FunctionInterface as FunctionInterface
 from .interface.echo import EchoInterface as EchoInterface
-from .interface.socket import (
-    SocketInterface as SocketInterface,
-    SecureSocketInterface as SecureSocketInterface,
+from .interface.socket import SocketInterface as SocketInterface
+from .registry import (
+    register_scheme as register_scheme,
+    interface_from_uri as interface_from_uri,
+    list_schemes as list_schemes,
 )
 
 
@@ -30,16 +23,10 @@ __all__: list[str] = [
     "FunctionInterface",
     "EchoInterface",
     "SocketInterface",
-    "SecureSocketInterface",
     "InterfaceState",
-
     "register_scheme",
     "interface_from_uri",
     "list_schemes",
-
-    "register_buffer",
-    "list_buffer_schemes",
-    "buffer_from_uri",
 ]
 
 # Tell static type-checkers that runtime code *is* the source of truth

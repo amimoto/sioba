@@ -17,11 +17,18 @@ Example:
 
     Advanced usage with custom interface:
         >>> term = XTerm(
-        ...     config=TerminalConfig(rows=40, cols=100),
+        ...     context=TerminalContext(rows=40, cols=100),
         ...     interface=CustomInterface(),
         ...     on_close=lambda t: print("Terminal closed")
         ... )
 """
+
+__all__ = [
+    'XTerm',
+    'TerminalContext',
+    'TerminalState',
+    'TerminalMetadata',
+]
 
 import json
 import asyncio
@@ -35,7 +42,6 @@ from typing import (
     Callable,
     Set,
     Literal,
-    Dict,
     Any,
     Generator
 )
@@ -47,10 +53,13 @@ from nicegui.elements.mixins.disableable_element import DisableableElement
 from nicegui.elements.mixins.value_element import ValueElement
 from nicegui.awaitable_response import AwaitableResponse
 
-from sioba.errors import TerminalClosedError, ClientDeleted
+from sioba.errors import (
+    TerminalClosedError as TerminalClosedError,
+    ClientDeleted as ClientDeleted 
+)
 
 @dataclass
-class TerminalConfig:
+class TerminalContext:
     rows: Optional[int] = None
     cols: Optional[int] = None
     term_type: Optional[str] = None
@@ -93,7 +102,7 @@ class TerminalConfig:
     scrollSensitivity: Optional[int] = None
     smoothScrollDuration: Optional[int] = None
     tabStopWidth: Optional[int] = None
-    theme: Optional[Dict[str, Any]] = None
+    theme: Optional[dict[str, Any]] = None
     windowsMode: Optional[bool] = None
     wordSeparator: Optional[str] = None
 
@@ -102,17 +111,17 @@ class TerminalConfig:
         for k, v in asdict(self).items():
             yield (k, v)
 
-    def update(self, options: "TerminalConfig") -> None:
-        """Update the configuration with another TerminalConfig instance."""
+    def update(self, options: "TerminalContext") -> None:
+        """Update the context with another TerminalContext instance."""
         for k, v in asdict(options).items():
             if v is not None:
                 setattr(self, k, v)
 
-    def copy(self) -> "TerminalConfig":
-        """Return a copy of the configuration."""
-        return TerminalConfig(**asdict(self))
+    def copy(self) -> "TerminalContext":
+        """Return a copy of the context."""
+        return TerminalContext(**asdict(self))
 
-CONFIG_DEFAULTS = TerminalConfig(
+CONTEXT_DEFAULTS = TerminalContext(
     rows=24,
     cols=80,
     term_type="xterm-256color",
@@ -184,12 +193,12 @@ class XTerm(
     Attributes:
         component: Name of the JavaScript component
         default_classes: Default CSS classes for the terminal
-        config: Terminal configuration settings
+        context: Terminal context settings
         state: Current state of the terminal
         metadata: Terminal session metadata
     """
 
-    config: TerminalConfig = None
+    context: TerminalContext = None
 
     def __getattribute__(self, name):
         #print(f"xterm.js: {name}")
@@ -198,7 +207,7 @@ class XTerm(
     def __init__(
         self,
         value: str = '',
-        config: Optional[TerminalConfig] = None,
+        context: Optional[TerminalContext] = None,
         on_change: Optional[Callable] = None,
         on_close: Optional[Callable] = None,
         **kwargs
@@ -208,15 +217,15 @@ class XTerm(
 
         Args:
             value: Initial terminal content
-            config: Terminal configuration settings
+            context: Terminal context settings
             on_change: Callback for content changes
             on_close: Callback for terminal closure
 
             **kwargs: Additional arguments passed to ValueElement
         """
-        self.config = CONFIG_DEFAULTS.copy()
-        if config is not None:
-            self.config.update(config) if config else None
+        self.context = CONTEXT_DEFAULTS.copy()
+        if context is not None:
+            self.context.update(context) if context else None
         self.state = TerminalState.INITIALIZING
         self.metadata = TerminalMetadata()
         self.on_close_callback = on_close
@@ -286,13 +295,13 @@ class XTerm(
             await self.on_close_callback(self)
 
         """Synchronize terminal state with frontend."""
-        if core.loop is None or not self._interface:
+        if core.loop is None or not self.interface:
             logger.warning("No event loop available for terminal sync")
             return
 
         try:
             # Update screen content
-            data = self._interface.get_terminal_buffer()
+            data = self.interface.get_terminal_buffer()
             if isinstance(data, str):
                 data = data.encode()
 
@@ -304,12 +313,12 @@ class XTerm(
                 )
 
             # Update cursor position
-            if cursor_position := self._interface.get_terminal_cursor_position():
+            if cursor_position := self.interface.get_terminal_cursor_position():
                 self.set_cursor_location(*cursor_position)
 
             # Check if interface is dead
-            if self._interface.is_shutdown():
-                self.write(b"[Interface Exited]\033[?25l\n\r")
+            if self.interface.is_shutdown():
+                self.write(b"[Interface Exited]\033[?25l\r\n")
                 self.state = TerminalState.DISCONNECTED
 
         except Exception as e:
@@ -324,23 +333,23 @@ class XTerm(
                 f"runMethod({self.id}, 'setOption', ['{option}', {json_value}]);"
             )
 
-    def sync_config(self) -> None:
-        """Synchronize the terminal configuration with the frontend.
+    def sync_context(self) -> None:
+        """Synchronize the terminal with the frontend.
 
-        This method updates the terminal's configuration settings in the
+        This method updates the terminal's context settings in the
         frontend, such as cursor visibility and other metadata.
 
         Raises:
             Exception: Logs any errors that occur during synchronization
         """
-        if core.loop is None or not self._interface:
-            logger.warning("No event loop available for terminal config sync")
+        if core.loop is None or not self.interface:
+            logger.warning("No event loop available for terminal context sync")
             return
 
         try:
-            for k, v in self.config.items():
+            for k, v in self.context.items():
                 self.set_option(k, v)
         except Exception as e:
-            logger.error(f"Failed to sync config with frontend: {e}")
+            logger.error(f"Failed to sync context with frontend: {e}")
 
 

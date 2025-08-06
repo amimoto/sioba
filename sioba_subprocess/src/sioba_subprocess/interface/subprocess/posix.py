@@ -19,15 +19,15 @@ class PosixInterface(Interface):
                  shutdown_command: str = None,
                  cwd:str=None,
 
-                 on_send_to_control: Callable = None,
-                 on_receive_from_control: Callable = None,
+                 on_send_to_frontend: Callable = None,
+                 on_receive_from_frontend: Callable = None,
                  on_shutdown: Callable = None,
                  *args,
                  **kwargs
                  ):
         super().__init__(
-            on_send_to_control = on_send_to_control,
-            on_receive_from_control = on_receive_from_control,
+            on_send_to_frontend = on_send_to_frontend,
+            on_receive_from_frontend = on_receive_from_frontend,
             on_shutdown = on_shutdown,
             *args,
             **kwargs
@@ -69,13 +69,13 @@ class PosixInterface(Interface):
     def _read_loop(self):
         """Callback when data is available to read from the shell."""
         if data := os.read(self.primary_fd, 10240):
-            asyncio.create_task(self.send_to_control(data))
+            asyncio.create_task(self.send_to_frontend(data))
 
     @logger.catch
-    async def receive_from_control(self, data: bytes):
+    async def receive_from_frontend(self, data: bytes):
         """Writes data to the shell."""
         os.write(self.primary_fd, data)
-        await super().receive_from_control(data)
+        await super().receive_from_frontend(data)
 
     @logger.catch
     def set_terminal_size(self, rows, cols, xpix=0, ypix=0):
@@ -134,8 +134,6 @@ class PosixInterface(Interface):
                 pass
 
             logger.debug(f"Process {self.process.pid} exited. Calling exit handlers.")
-            self.shutdown()
-
-            await super().shutdown()
+            await self.shutdown()
 
         loop.run_until_complete(_shutdown())

@@ -70,8 +70,8 @@ You can customize the terminal's appearance and behavior using the `TerminalConf
 from nicegui import ui
 from sioba_nicegui.xterm import XTerm, TerminalConfig
 
-# Define custom terminal configuration
-config = TerminalConfig(
+# Define custom terminal context
+context = TerminalConfig(
     rows=30,
     cols=100,
     font_size=16,
@@ -83,7 +83,7 @@ config = TerminalConfig(
 )
 
 # Create an XTerm instance with the custom configuration
-term = XTerm(config=config)
+term = XTerm(context=context)
 term.classes("w-full h-full")
 
 ui.run()

@@ -8,7 +8,7 @@ import gc
 async def index(client: Client):
     interface, xterm = XTermInterface.from_uri("echo://")
     xterm.classes("w-full")
-    interface.on_receive_from_control(lambda data: print(f"Received: {data}"))
+    interface.on_receive_from_frontend(lambda data: print(f"Received: {data}"))
 
 # Make sure static files can be found
 try:
