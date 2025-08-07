@@ -1,6 +1,6 @@
-from typing import Callable
+from typing import Callable, Optional
 
-from sioba import register_scheme
+from sioba import register_scheme, InterfaceContext
 
 from loguru import logger
 
@@ -32,8 +32,11 @@ class ShellInterface(SubprocessInterface):
                 cols: int = 80,
                 rows: int = 24,
                 auto_shutdown: bool = True,
+                context: Optional[InterfaceContext] = None,
  
             ):
+        if context is None:
+            context = InterfaceContext()
         super().__init__(
                 invoke_command = invoke_command,
                 shutdown_command = shutdown_command,

@@ -49,6 +49,12 @@ test = [
 windows = [
     "winpty>=0.4.3"
 ]
+dev = [
+  # only for local development & tests
+  "sioba @ file://../sioba",
+  "pytest"
+]
 
 [project.entry-points]
-"sioba.interface".exec = "sioba_subprocess.interface:SubprocessInterface"
+"sioba.interface".exec = "sioba_subprocess.interface:ShellInterface"
+

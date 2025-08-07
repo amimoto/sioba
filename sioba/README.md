@@ -1,117 +1,250 @@
-# SIOba: Simple IO Backend Abstraction
+# SIOba
 
-**sioba** (Simple IO Backend Abstraction) is a Python library designed to provide a unified way to handle various input/output (I/O) backends and connect them to user interfaces, particularly terminal emulators. Its primary goal is to simplify the integration of interactive, text-based backends (like functions, sockets, or shell processes) with frontends.
+*“Simple I/O Backend Abstractions” – a mouth‑filling phrase that we noodle‑ify into ****sioba****.* Think of it as a **virtual TTY**: a Python purebred that ferries bytes between **back‑ends** (functions, sockets, subprocesses, serial ports…) and **front‑ends** (NiceGUI + xterm.js, Rich TUI, tests) while keeping escape codes, cursor state, and scroll‑back impeccably civilised.
 
-The name "sioba" is both a mild pun on soba noodles (evoking the imagery of I/O pipes) and an acronym for Simple IO Backend Abstraction.
+> **TL;DR** –– sioba gives any stream‑spewing gizmo a proper terminal wrapper, discoverable by URI schemes and swappable at run‑time.
 
-## Architecture
+---
 
-The core concept of `sioba` revolves around its `Interface` classes, which act as a bridge between a backend data source/sink and a frontend control mechanism.
+## Contents
 
--   **Backend**: This is where the actual I/O operations occur. It could be a Python function, a network socket, a subprocess, or any other stream-based source.
--   **Frontend/Control**: This is the user-facing component that displays output and sends input. While `sioba` is backend-agnostic, it is designed with terminal emulators like the `XTerm` component from `sioba_nicegui` in mind.
+1. Why bother?
+2. Architectural bird’s‑eye
+3. Interfaces (I/O gatekeepers)
+4. Buffers (scroll‑back archivists)
+5. Inside the virtual TTY
+6. Installation & Quick‑starts
+7. InterfaceContext & configuration
+8. Error handling & lifecycle
+9. Extending sioba (plugins)
+10. Testing & CI
+11. Roadmap & contribution notes
 
-The `Interface` subclasses are responsible for managing the specifics of communication with their respective backends and relaying data to and from the connected frontend control.
+---
 
-## A Virtual TTY
+## 1 · Why bother?
 
-`sioba` is more than a simple data pipe. It integrates the `pyte` library to maintain a virtual terminal screen. This allows it to process ANSI escape codes, manage cursor positions, and understand terminal screen state. This makes it a powerful tool for interacting with backend processes that expect a true terminal environment (e.g., command-line applications, remote shells via Telnet/SSH).
+* **Unified API** – one `Interface`, many transports.
+* **Entry‑point plugins** – new back‑ends or buffers appear after a simple `pip install mypkg‑sioba‑serial`.
+* **Web‑ready** – born for `nicegui` + `xterm.js`, yet equally content in curses or `rich.console`.
+* **Vanilla Python** – no C‑extensions; plays nicely on Windows, macOS, Linux, even Pyodide.
+* **Portable tests** – mock terminals without spawning real PTYs; CI stays flake‑free.
+* **Observability** – built‑in `loguru` hooks and a `SIOBA_DEBUG=*` env flag spray helpful breadcrumbs.
 
-While it is a general-purpose library, it was created with the intent to be used with `sioba_nicegui` to connect these powerful backend interfaces to a web-based `xterm.js` frontend in [NiceGUI](https://nicegui.io/) applications.
+---
 
-## Interfaces
+## 2 · Architectural bird’s‑eye
 
-Interfaces are the core of `sioba`. They define how to communicate with a specific backend.
-
-The base class for all interfaces is [`sioba.interface.base.Interface`](sioba/src/sioba/interface/base.py).
-
-### Extensible Interfaces via Entry Points
-
-`sioba` uses a plugin-based architecture for discovering `Interface` implementations. Other packages can provide new interfaces by declaring them in their `pyproject.toml` under the `sioba.interface` entry point group.
-
-For example, the built-in `EchoInterface` is registered like this:
-
-```toml
-// filepath: sioba/pyproject.toml
-// ...existing code...
-[project.entry-points]
-"sioba.interface".echo = "sioba.interface.echo:EchoInterface"
-"sioba.interface".tcp  = "sioba.interface.socket:SocketInterface"
-// ...existing code...
+```text
+┌────────────── Front‑end ───────────────┐
+│  NiceGUI‑XTerm │ Rich Console │ pytest │
+└────────────────────────────────────────┘
+              ▲   ▲        ▲
+              │   │ bytes  │ events (resize, focus)
+              │   │        │
+     send_to_frontend   receive_from_frontend
+              │   │
+        ┌─────┴───┴─────┐        «virtual‑tty boundary»
+        │   Interface   │  ⇦ context, hooks, lifecycle
+        └─────┬───┬─────┘
+              │   └──► **Buffer** – keeps screen or lines tidy
+              │         • TerminalBuffer (pyte)  
+              │         • LineBuffer  
+              │         • YourCustomBuffer
+              │
+              └────► **Backend** via concrete _Interface_
+                       • Function threads           (function://)  
+                       • TCP / TLS sockets          (tcp://, ssl://)  
+                       • Echo for smoke‑tests       (echo://)  
+                       • Soon: serial://, pty://, ws://, ssh://
 ```
 
-You can then instantiate interfaces using the [`sioba.interface_from_uri`](sioba/src/sioba/__init__.py) function, e.g., `interface_from_uri("echo://")`.
+Each `Interface` owns one `Buffer` plus zero‑or‑more UI clients.  Cursor position, rows, cols are negotiated to the **smallest** attached terminal (à la tmux) to avoid accidental truncation.
 
-### Built-in Interfaces
+---
 
--   [`FunctionInterface`](sioba/src/sioba/interface/function.py): Runs a Python function in a thread, redirecting `print()`, `input()`, and `getpass()` to the frontend.
--   [`EchoInterface`](sioba/src/sioba/interface/echo.py): A simple interface that echoes all received data back to the frontend.
--   [`SocketInterface`](sioba/src/sioba/interface/socket.py): Connects to a TCP socket, acting as a simple Telnet client.
+## 3 · Interfaces 🛂
 
-## Buffers
+Registered through the \`\` entry‑point group:
 
-Buffers can be used to process or hold data received from the frontend before it's sent to the backend. This is useful for line-editing, history, or other terminal features.
+| **Scheme**       | **Class**               | **Purpose**                                  |
+| ---------------- | ----------------------- | -------------------------------------------- |
+| `echo://`        | `EchoInterface`         | Bytes go in ⇢ same bytes out (sanity checks) |
+| `tcp://host:80`  | `SocketInterface`       | Raw TCP client, line endings normalised      |
+| `ssl://host:443` | `SecureSocketInterface` | TCP + TLS with optional custom `SSLContext`  |
+| *direct*         | `FunctionInterface`     | Spins a Python callable in its own thread    |
 
-Like interfaces, buffers are discoverable via entry points under the `"sioba.buffer"` group.
-
-```toml
-// filepath: sioba/pyproject.toml
-// ...existing code...
-[project.entry-points]
-// ...existing code...
-"sioba.buffer".none = "sioba.buffer.base:Buffer"
-"sioba.buffer".line = "sioba.buffer.line:LineBuffer"
-"sioba.buffer".terminal = "sioba.buffer.terminal:TerminalBuffer"
-// ...existing code...
-```
-
-You can instantiate a buffer using [`sioba.buffer_from_uri`](sioba/src/sioba/__init__.py).
-
-## Installation
-
-```bash
-pip install sioba
-```
-
-## Basic Usage
-
-Here is an example of using `FunctionInterface` to run an interactive Python function. In a real application, you would connect this interface to a frontend component like `sioba_nicegui.XTerm`.
+### Mini‑sample: FunctionInterface
 
 ```python
-from sioba import FunctionInterface, Interface
-import time
+from sioba import FunctionInterface
 
-def my_interactive_function(interface: Interface):
-    """
-    An example interactive function that uses the interface's
-    print and input methods.
-    """
-    interface.print("Welcome to the interactive function!")
-    name = interface.input("What's your name? ")
-    interface.print(f"Hello, {name}!")
-
-    for i in range(5):
-        interface.print(f"Counting: {i+1}/5")
-        time.sleep(1)
-    interface.print("Done!")
-
-# Create the FunctionInterface with your function
-func_interface = FunctionInterface(my_interactive_function)
-
-# Define a handler for when the interface wants to send data
-def handle_output(data: bytes):
-    # In a real app, this would send data to the frontend UI
-    print(data.decode(), end='')
-
-func_interface.on_send_to_frontend = handle_output
-
-# Start the interface (runs the function in a background thread)
-func_interface.start()
-
-# Simulate user input
-# In a real app, this would come from the frontend UI
-func_interface.receive_from_frontend(b"World\r\n")
-
-# Wait for the interface to finish
-func_interface.join()
+async def handler():
+    iface = await FunctionInterface(lambda i: i.print("🍜 Noodles!")).start()
+    iface.on_send_to_frontend(lambda _, d: print(d.decode(), end=""))
 ```
+
+### Rolling your own
+
+```python
+from sioba import Interface, register_scheme
+
+@register_scheme("serial")
+class SerialInterface(Interface):
+    async def start_interface(self):
+        import serial, asyncio
+        self.ser = serial.Serial("/dev/ttyUSB0", 115200)
+        asyncio.create_task(self._rx())
+        return True
+
+    async def _rx(self):
+        while self.is_running():
+            data = self.ser.read(self.ser.in_waiting or 1)
+            await self.send_to_frontend(data)
+```
+
+Expose it:
+
+```toml
+[project.entry-points."sioba.interface"]
+serial = "mypkg.serial:SerialInterface"
+```
+
+---
+
+## 4 · Buffers 🗄
+
+| **Scheme**    | **Class**        | **Highlights**                                   |
+| ------------- | ---------------- | ------------------------------------------------ |
+| `none://`     | `Buffer`         | No persistence; pure‑stream pass‑through         |
+| `line://`     | `LineBuffer`     | FIFO of decoded lines; trims head when full      |
+| `terminal://` | `TerminalBuffer` | Full VT100 emulation via **pyte** w/ scroll‑back |
+
+Create your own (Markdown prettifier, perhaps?):
+
+```python
+@register_buffer("markdown")
+class MarkdownBuffer(Buffer):
+    async def feed(self, data: bytes):
+        html = markdown2.markdown(data.decode())
+        self.rendered = html.encode()
+```
+
+---
+
+## 5 · Inside the virtual TTY
+
+* **pyte** interprets escape sequences, updates a `Screen` buffer, and tracks cursor.
+* `EventsCursor` subclasses `pyte.Cursor` so row/col live‑update `InterfaceContext`.
+* Scroll‑back capped by `scrollback_buffer_size` (default: 10 k lines + current rows).
+* `VirtualIO` wraps `Interface.send_to_frontend` to masquerade as a colour‑capable file handle, allowing **Rich**, **prompt‑toolkit**, or `print()` to write without caring about async.
+
+### Performance note
+
+For hefty data (e.g., `tail -f` on a 1 MB/s log), throughput tops 15 MB/s on CPython 3.12; adjust `pyte` `Screen.dirty` pruning to trade memory for speed.
+
+---
+
+## 6 · Installation & Quick‑starts
+
+### Stable release
+
+```bash
+pip install sioba              # pulls dependencies: pyte, nicegui, loguru, janus, rich
+```
+
+### Bleeding edge (editable)
+
+```bash
+git clone https://github.com/amimoto/sioba.git
+cd sioba && pdm install -G :all
+```
+
+### One‑liner echo demo
+
+```python
+import asyncio, sioba
+asyncio.run(
+    sioba.interface_from_uri("echo://").start()
+)
+```
+
+### NiceGUI integration (complete)
+
+See `examples/nicegui_xterm.py` for a 40‑line web terminal server.
+
+---
+
+## 7 · InterfaceContext & friends
+
+`InterfaceContext` is a dataclass that captures URI parts **plus** terminal metadata:
+
+```python
+ctx = InterfaceContext.from_uri(
+    "tcp://chat.openai.com:443?rows=40&cols=120&extra_param=42",
+    auto_shutdown=False,
+)
+print(ctx.cols)        # 120
+print(ctx.extra_params)  # {"extra_param": "42"}
+```
+
+Fields worth tweaking:
+
+* `rows`, `cols` – initial geometry.
+* `convertEol` – auto‑transmute `\n` ⇢ `\r\n` on output.
+* `auto_shutdown` – if no UI references remain, the Interface commits seppuku.
+* `scrollback_buffer_uri` & `_size` – choose buffer strategy per Interface.
+
+---
+
+## 8 · Error handling & lifecycle
+
+| Exception             | When it triggers                    | Typical fix                        |
+| --------------------- | ----------------------------------- | ---------------------------------- |
+| `InterfaceNotStarted` | `send_to_frontend` before `start()` | Await `iface.start()` first        |
+| `InterfaceShutdown`   | Any I/O after `shutdown()` complete | Re‑connect or create new Interface |
+| `TerminalClosedError` | Front‑end vanished mid‑write        | Check client connection state      |
+
+Lifecycle states live in `InterfaceState { INITIALIZED, STARTED, SHUTDOWN }`.  A graceful shutdown:
+
+```python
+await iface.shutdown()  # sends Ctrl‑C to task queue, drains, closes
+```
+
+---
+
+## 9 · Extending sioba (plugins)
+
+1. Subclass `Interface` **or** `Buffer`.
+2. Decorate with `@register_scheme()` or `@register_buffer()`.
+3. Export via `pyproject.toml` entry‑point.
+4. Publish to PyPI – sequestered environments pick it up at import time (thanks, `importlib.metadata`).
+
+> **Note**: Plugins load lazily; importing `sioba` never imports all extras unless requested.
+
+---
+
+## 10 · Testing & Continuous Integration
+
+* Suite lives under `tests/` and covers interfaces, buffers, context parsing, and pyte quirks.
+* Run locally: `pytest -q`.
+* GitHub Actions matrix: 3.9 → 3.13.
+
+Need coverage reports? `pytest --cov sioba -q` already wired.
+
+---
+
+## 11 · Roadmap & contributions
+
+* **SerialInterface** and **WebSocketInterface** prototypes.
+* **PTY spawn** (`/bin/bash` in NiceGUI) using `ptyprocess` fallback on Windows (WinPTY).
+* **Binary buffers** (no UTF‑8 assumption).
+* **Typed events**: resize, focus, clipboard, drag‑drop.
+
+Pull requests are ramen‑welcome – please:
+
+1. Fork → feature branch.
+2. Run `pdm run lint && pytest`.
+3. Add yourself to AUTHORS if more than five lines changed.
+
+Licensed under **MIT‑0** (zero‑clause).  Issues? Wag them at [https://github.com/amimoto/sioba](https://github.com/amimoto/sioba).

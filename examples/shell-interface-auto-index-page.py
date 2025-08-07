@@ -5,7 +5,7 @@ from sioba_nicegui.xterm import XTermInterface
 
 #ShellInterface("cmd.exe")
 #iface = ShellInterface("bash")
-interface, xterm = XTermInterface.from_uri("exec://bash").classes("w-full")
+xterm = XTermInterface.from_uri("exec://bash").classes("w-full")
 
 # Make sure static files can be found
 try:

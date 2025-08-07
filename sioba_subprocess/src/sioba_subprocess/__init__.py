@@ -24,10 +24,10 @@ class ShellXTerm(XTerm):
         self,
         invoke_command: str = INVOKE_COMMAND,
         shutdown_command: str = None,
-        cwd: str = None,
+        cwd: str = ".",
         on_receive_from_frontend: Optional[Callable] = None,
         on_shutdown: Optional[Callable] = None,
-        config: Optional[TerminalContext] = None,
+        context: Optional[TerminalContext] = None,
         **kwargs
     ) -> None:
         """Initialize a shell-connected terminal.
@@ -41,20 +41,21 @@ class ShellXTerm(XTerm):
             config: Terminal configuration
             **kwargs: Additional arguments passed to XTerm
         """
-        config = config or TerminalContext()
+        if context is None:
+            context = TerminalContext()
 
         interface = ShellInterface(
             invoke_command=invoke_command,
             shutdown_command=shutdown_command,
-            cwd=cwd,
+            #cwd=cwd,
             on_receive_from_frontend=on_receive_from_frontend,
             on_shutdown=on_shutdown,
-            rows=config.rows,
-            cols=config.cols,
+            rows=context.rows,
+            cols=context.cols,
         ).start()
 
         super().__init__(
             interface=interface,
-            config=config,
+            config=context,
             **kwargs
         )

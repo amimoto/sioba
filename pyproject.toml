@@ -38,3 +38,13 @@ testpaths = [
 ]
 asyncio_default_fixture_loop_scope = "function"
 
+
+[tool.pdm.workspace]
+members = [
+  "sioba",
+  "sioba_subprocess",
+]
+
+[tool.pdm.overrides]
+sioba = { path = "sioba", develop = true }
+sioba_subprocess = { path = "sioba_subprocess", develop = true }
