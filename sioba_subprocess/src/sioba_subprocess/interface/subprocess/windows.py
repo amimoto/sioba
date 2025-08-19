@@ -12,7 +12,6 @@ from loguru import logger
 class WindowsInterface(Interface):
     def __init__(self,
                  invoke_command: str,
-                 shutdown_command: str = None,
                  on_receive_from_frontend: Callable = None,
                  on_shutdown: Callable = None,
                  cwd: str = None,
@@ -26,7 +25,6 @@ class WindowsInterface(Interface):
             **kwargs
         )
         self.invoke_command = invoke_command
-        self.shutdown_command = shutdown_command
         self.cwd = cwd
         self.process = None
         self.main_loop = None

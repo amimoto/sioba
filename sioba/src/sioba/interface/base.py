@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from weakref import ProxyType, proxy
-
 from importlib.metadata import entry_points
 
 from urllib.parse import urlparse
@@ -19,7 +17,6 @@ import uuid
 import enum
 
 from loguru import logger
-import pyte
 
 from ..io import VirtualIO
 from ..errors import (
@@ -174,6 +171,7 @@ OnShutdownCallbackType = Union[
 DEFAULT_ROWS = 24
 DEFAULT_COLS = 80
 DEFAULT_AUTO_SHUTDOWN = True
+DEFAULT_SCROLLBACK_URI = "terminal://"
 DEFAULT_SCROLLBACK_BUFFER_SIZE = 10_000
 DEFAULT_CONTEXT = InterfaceContext(
     rows=DEFAULT_ROWS,
@@ -181,6 +179,7 @@ DEFAULT_CONTEXT = InterfaceContext(
     encoding="utf-8",
     convertEol=False,
     auto_shutdown=DEFAULT_AUTO_SHUTDOWN,
+    scrollback_buffer_uri=DEFAULT_SCROLLBACK_URI,
     scrollback_buffer_size=DEFAULT_SCROLLBACK_BUFFER_SIZE,
     title="",
 )

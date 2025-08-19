@@ -1,46 +1,34 @@
 [project]
 name = "sioba"
-version = "0.3.20250805"
-description = "Simple IO Backend Abstractions: A lightweight framework for unifying subprocess, socket, serial, and custom I/O backends via extensible interface."
-authors = [
-    { name = "Aki Mimoto", email = "aki@bako.ca" }
-]
+version = "0.3.2050806"
+description = "Sioba IO Abstraction Layer"
+requires-python = ">=3.9"
 dependencies = [
-    "nicegui>=2.5.0",
     "loguru>=0.7.2",
     "rich>=14.0.0",
     "pyte>=0.8.2",
     "loguru>=0.7.2",
     "janus>=2.0.0",
 ]
-requires-python = ">=3.9"
-license = { text = "MIT-0" }
 
-[metadata]
-long_description = "file:README.md"
-long_description_content_type = "text/markdown"
-
-[overrides]
-sioba = { path = "../sioba", develop = true }
+# Override the runtime requirement when *inside* the workspace
+[tool.uv.sources]
+sioba = { workspace = true }
 
 [build-system]
-requires = ["pdm-backend>=0.12"]
-build-backend = "pdm.backend"
+requires = ["uv_build>=0.8.5,<1"]
+build-backend = "uv_build"
 
 [project.urls]
 Homepage = "https://github.com/amimoto/sioba"
 Issues = "https://github.com/amimoto/sioba/issues"
 
-[tool.pytest.ini_options]
-#addopts = "--driver Chrome"
-asyncio_mode = "auto"
-testpaths = ["tests"]
-asyncio_default_fixture_loop_scope = "function"
-
-
-[tool.pdm]
-distribution = true
-build = { includes = ["src/sioba"] }
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=0.25.3",
+    "pytest-cov>=6.2.1",
+]
 
 [project.entry-points]
 "sioba.interface".echo = "sioba.interface.echo:EchoInterface"
@@ -51,10 +39,3 @@ build = { includes = ["src/sioba"] }
 "sioba.buffer".line = "sioba.buffer.line:LineBuffer"
 "sioba.buffer".terminal = "sioba.buffer.terminal:TerminalBuffer"
 
-[dependency-groups]
-dev = [
-    # Testing dependencies for the development environment
-    "pytest>=8.3.4",
-    "pytest-asyncio>=0.25.3",
-    "pytest-cov>=6.2.1",
-]

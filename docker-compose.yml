@@ -11,7 +11,7 @@ services:
     # Uncomment this if you wish to "check into" this container
     # and work within an isolated container
     #command: sleep infinity
-    network_mode: host
+    #network_mode: host
     volumes:
       - .:/src
       - ./volumes:/volumes

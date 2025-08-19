@@ -119,9 +119,13 @@ class InterfaceContext:
         try:
             return getattr(self, key)
         except AttributeError:
-            if self.extra_params:
-                return self.extra_params.get(key, default)
-
-
+            val = self.query.get(
+                        key,
+                        self.extra_params.get(
+                            key,
+                            default
+                        )
+                    )
+            return val
 
 

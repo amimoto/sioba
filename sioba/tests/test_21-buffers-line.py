@@ -1,5 +1,5 @@
 from unittest import IsolatedAsyncioTestCase
-from sioba import Interface, InterfaceContext, buffer_from_uri
+from sioba import InterfaceContext, buffer_from_uri
 
 class MockInterface:
     def __init__(self, context):

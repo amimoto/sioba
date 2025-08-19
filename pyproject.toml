@@ -1,50 +1,19 @@
-[tool.pdm]
-distribution = false
-
-[tool.pdm.dev-dependencies]
-dev = [
-    # Local libraries
-    "-e file:///${PROJECT_ROOT}/sioba",
-    "-e file:///${PROJECT_ROOT}/sioba_nicegui",
-    "-e file:///${PROJECT_ROOT}/sioba_subprocess",
-    "-e file:///${PROJECT_ROOT}/sioba_app",
-
-    # Testing dependencies for the development environment
-    "pytest>=8.3.4",
-    "pytest-selenium>=4.0.2",
-    "pytest-asyncio>=0.25.3",
-    "selenium>=4.28.1",
-    "pytest-cov>=6.2.1",
-]
-
 [project]
-name = "src"
-version = "0.1.0"
-description = "Default template for PDM package"
-authors = [
-    {name = "", email = ""},
-]
-dependencies = [
-]
+name = "sioba-monorepo"        # purely a container; seldom published
+version = "0.0.0"
 requires-python = ">=3.9"
-readme = "README.md"
-license = {text = "MIT"}
 
-[tool.pytest.ini_options]
-addopts = "--driver Chrome"
-asyncio_mode = "auto"
-testpaths = [
-    "sioba/tests"
-]
-asyncio_default_fixture_loop_scope = "function"
+[tool.uv.workspace]
+#members = ["sioba", "sioba_nicegui", "sioba_subprocess"]
+members = ["sioba", "sioba_subprocess"]
 
+# Make all three discoverable to each other while developing
+[tool.uv.sources]
+sioba            = { workspace = true }
+#sioba_nicegui    = { workspace = true }
+sioba_subprocess = { workspace = true }
 
-[tool.pdm.workspace]
-members = [
-  "sioba",
-  "sioba_subprocess",
-]
+[build-system]
+requires = ["uv_build>=0.8.5,<1"]
+build-backend = "uv_build"
 
-[tool.pdm.overrides]
-sioba = { path = "sioba", develop = true }
-sioba_subprocess = { path = "sioba_subprocess", develop = true }

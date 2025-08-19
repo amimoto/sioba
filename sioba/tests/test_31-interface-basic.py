@@ -238,7 +238,6 @@ class TestInterfaceBase(IsolatedAsyncioTestCase):
         # Shutdown the interface
         #print(interface.buffer.screen.dump_screen_state_clean(interface.buffer.screen).decode())
 
-
         print(strip_terminal_escapes(
             data=buffer,
             cols=interface.context.cols,

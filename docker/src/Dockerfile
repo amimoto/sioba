@@ -69,7 +69,8 @@ RUN :\
     && rm -rf ~/.cache \
     && rm -rf /var/lib/apt/lists/* \
     && :
-    # 24.04 now includes a default ubuntu user. We will remove it for our user
+
+# 24.04 now includes a default ubuntu user. We will remove it for our user
 RUN : \
     && userdel -r ubuntu \
     # Create the new user
