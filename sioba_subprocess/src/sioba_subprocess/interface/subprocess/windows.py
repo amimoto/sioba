@@ -29,7 +29,6 @@ class WindowsInterface(Interface):
         self.process = None
         self.main_loop = None
 
-    @logger.catch
     async def start_interface(self):
         """Starts the shell process asynchronously."""
 
@@ -54,7 +53,6 @@ class WindowsInterface(Interface):
         # Start a task to monitor process exit
         #asyncio.create_task(self._on_shutdown_handlers())
 
-    @logger.catch
     def _read_loop(self):
         """Blocking read loop in a separate thread."""
         while self.process.isalive():
@@ -62,14 +60,12 @@ class WindowsInterface(Interface):
             if data:
                 asyncio.run(self.send_to_frontend(data.encode()))
 
-    @logger.catch
     def set_terminal_size(self, rows: int, cols: int, xpix: int = 0, ypix: int = 0):
         """Sets the shell window size."""
         if self.state != InterfaceState.STARTED:
             return
         super().set_terminal_size(rows=rows, cols=cols)
 
-    @logger.catch
     async def receive_from_frontend(self, data: bytes):
         """Writes data to the shell."""
         if self.state != InterfaceState.STARTED:
@@ -77,7 +73,6 @@ class WindowsInterface(Interface):
         self.process.write(data.decode())
         await super().receive_from_frontend(data)
 
-    @logger.catch
     async def shutdown_interface(self) -> None:
         """Shuts down the shell process."""
         try:
@@ -87,7 +82,6 @@ class WindowsInterface(Interface):
         except Exception as e:
             logger.warning(f"Error terminating process: {e}")
 
-    @logger.catch
     async def _on_shutdown_handlers(self):
         """Monitors process exit and handles cleanup."""
         try:

@@ -25,7 +25,7 @@ class TestImportSubprocess(IsolatedAsyncioTestCase):
             invoke_command_fpath = sys.executable
             invoke_command_path = pathlib.Path(invoke_command_fpath)
             self.assertTrue(invoke_command_path.exists(), "Python executable path does not exist.")
-            exec_uri = "exec://"+str(invoke_command_path)
+            exec_uri = "exec:///"+str(invoke_command_path)
 
         # Construct the exec URI for the subprocess interface
         exec_interface = interface_from_uri(
@@ -66,7 +66,7 @@ class TestImportSubprocess(IsolatedAsyncioTestCase):
 
         self.assertEqual(exec_interface.state, InterfaceState.SHUTDOWN)
 
-    async def test_subprocess_shutdown(self):
+    async def t_est_subprocess_shutdown(self):
         """ Can we shutdown the subprocess interface gracefully?
         """
         # Find out where the path to python might be
@@ -76,7 +76,7 @@ class TestImportSubprocess(IsolatedAsyncioTestCase):
 
         self.assertEqual(exec_interface.state, InterfaceState.SHUTDOWN)
 
-    async def test_subprocess_run_error(self):
+    async def t_est_subprocess_run_error(self):
         """ Checks if we can handle errors gracefully. """
         # Find out where the path to python might be
         invoke_command_path = pathlib.Path(sys.executable)

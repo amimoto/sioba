@@ -88,7 +88,10 @@ class SocketInterface(Interface):
         # Close the writer
         if self.writer:
             self.writer.close()
-            await self.writer.wait_closed()
+            try:
+                await self.writer.wait_closed()
+            except ConnectionAbortedError:
+                pass
 
 from ssl import SSLContext, create_default_context
 

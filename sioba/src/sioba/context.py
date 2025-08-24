@@ -2,7 +2,6 @@ from typing import (
     Any,
     Optional,
     Union,
-
     get_origin,
     get_args,
 )
@@ -50,7 +49,7 @@ class InterfaceContext:
     username: Optional[str] = None
     password: Optional[str] = None
     params: Optional[str] = None
-    query: Optional[dict[str, list[str]]] = None
+    query: dict[str, list[str]] = field(default_factory=dict)
 
     rows: int = 24
     cols: int = 80
