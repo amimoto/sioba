@@ -17,6 +17,7 @@ class TestImportSubprocess(IsolatedAsyncioTestCase):
             exec_uri: str = None,
             invoke_args: str = None,
             invoke_cwd: str = None,
+            invoke_start_dwell: float = 1,
             expected_running: bool = True,
             expected_state: InterfaceState = InterfaceState.STARTED,
         ):
@@ -34,8 +35,11 @@ class TestImportSubprocess(IsolatedAsyncioTestCase):
             invoke_cwd=invoke_cwd,
         )
         await exec_interface.start()
-        # Ensure we're started
-        await asyncio.sleep(1)
+
+        # Ensure we're started by waiting a teeny bit
+        if invoke_start_dwell:
+            await asyncio.sleep(invoke_start_dwell)
+
         self.assertEqual(exec_interface.state, expected_state)
         self.assertIsInstance(exec_interface, ShellInterface)
         self.assertEqual(exec_interface.is_running(), expected_running)
@@ -54,7 +58,7 @@ class TestImportSubprocess(IsolatedAsyncioTestCase):
         # input
         await exec_interface.receive_from_frontend(b"import hashlib\n")
         await exec_interface.receive_from_frontend(b'hashlib.md5(b"hello world").hexdigest()\n')
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.5)
 
         # Now let's check if we received the output
         buffer = exec_interface.buffer.dump_screen_state().decode()
@@ -62,11 +66,11 @@ class TestImportSubprocess(IsolatedAsyncioTestCase):
 
         # Let's exit the python process
         await exec_interface.receive_from_frontend(b"exit()\n")
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.2)
 
         self.assertEqual(exec_interface.state, InterfaceState.SHUTDOWN)
 
-    async def t_est_subprocess_shutdown(self):
+    async def test_subprocess_shutdown(self):
         """ Can we shutdown the subprocess interface gracefully?
         """
         # Find out where the path to python might be
@@ -76,12 +80,12 @@ class TestImportSubprocess(IsolatedAsyncioTestCase):
 
         self.assertEqual(exec_interface.state, InterfaceState.SHUTDOWN)
 
-    async def t_est_subprocess_run_error(self):
+    async def test_subprocess_run_error(self):
         """ Checks if we can handle errors gracefully. """
         # Find out where the path to python might be
         invoke_command_path = pathlib.Path(sys.executable)
         exec_interface = await self.invoke_subprocess(
-            exec_uri = f"exec://{invoke_command_path}?arg=tests/scripts/error.py",
+            exec_uri = f"exec:///{invoke_command_path}?arg=tests/scripts/error.py",
             expected_running=False,
             expected_state = InterfaceState.SHUTDOWN,
         )

@@ -34,7 +34,6 @@ class PosixInterface(Interface):
         invoke_command: Optional[str],
         invoke_args: Optional[list[str]] = None,
         invoke_cwd: Optional[str] = None,
-        cwd: Optional[str] = None,
         on_send_to_frontend: Optional[Callable] = None,
         on_receive_from_frontend: Optional[Callable] = None,
         on_shutdown: Optional[Callable] = None,

@@ -375,6 +375,9 @@ class Interface:
     async def receive_from_frontend(self, data: bytes) -> None:
         """Receives data from the xterm as a sequence of bytes.
         """
+        if self.context.convertEol:
+            data = data.replace(b"\n", b"\r\n")
+
         # Dispatch to all listeners
         for on_receive in self._on_receive_from_frontend_callbacks:
             res = on_receive(self, data)
