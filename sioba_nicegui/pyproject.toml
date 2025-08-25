@@ -1,0 +1,26 @@
+[project]
+name = "sioba_nicegui"
+version = "0.1.20250824"
+description = "Sioba Interface to XTerm.js bindings"
+requires-python = ">=3.9"
+dependencies = [
+    "nicegui>=2.23.0",
+    "sioba>=0.3.20250806",
+]
+
+# Override the runtime requirement when *inside* the workspace
+[tool.uv.sources]
+sioba = { workspace = true }
+sioba_subprocess = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.8.5,<1"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=0.25.3",
+    "pytest-cov>=6.2.1",
+    "sioba_subprocess>=0.4.20250825",
+]

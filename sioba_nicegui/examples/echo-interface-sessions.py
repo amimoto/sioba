@@ -2,13 +2,14 @@
 
 from nicegui import ui, Client
 from sioba_nicegui.xterm import XTermInterface
-import gc
 
 @ui.page('/')
 async def index(client: Client):
-    interface, xterm = XTermInterface.from_uri("echo://")
+    xterm = XTermInterface.from_uri("echo://")
     xterm.classes("w-full")
-    interface.on_receive_from_frontend(lambda data: print(f"Received: {data}"))
+    xterm.interface.on_receive_from_frontend(
+        lambda interface, data: print(f"Received: {data} from {interface}")
+    )
 
 # Make sure static files can be found
 try:

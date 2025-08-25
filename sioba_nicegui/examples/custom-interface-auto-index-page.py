@@ -10,8 +10,7 @@ class CustomInterface(Interface):
     async def receive_from_frontend(self, data: bytes):
         await self.send_to_frontend(f"Received {repr(data)} / {int(data[0])} \r\n".encode())
 
-interface, xterm = XTermInterface.from_uri("custom://")
-xterm.classes("w-full")
+xterm = XTermInterface.from_uri("custom://").classes("w-full")
 
 # Make sure static files can be found
 try:

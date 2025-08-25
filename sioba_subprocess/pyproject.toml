@@ -1,6 +1,6 @@
 [project]
 name = "sioba_subprocess"
-version = "0.4.0"
+version = "0.4.20250825"
 description = "Sioba Subproces IO Interface layer"
 requires-python = ">=3.9"
 dependencies = [
@@ -17,3 +17,5 @@ sioba = { workspace = true }
 requires = ["uv_build>=0.8.5,<1"]
 build-backend = "uv_build"
 
+[project.entry-points]
+"sioba.interface".exec = "sioba_subprocess.interface:ShellInterface"
