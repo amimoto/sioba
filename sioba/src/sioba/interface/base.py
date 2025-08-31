@@ -119,6 +119,7 @@ def interface_from_uri(
         on_set_terminal_title=on_set_terminal_title,
         **kwargs,
     )
+
 ###########################################################
 # Interface State Enum
 ###########################################################
@@ -168,22 +169,6 @@ OnShutdownCallbackType = Union[
 # Basic Interface Class that provides what XTerm expects
 ###########################################################
 
-DEFAULT_ROWS = 24
-DEFAULT_COLS = 80
-DEFAULT_AUTO_SHUTDOWN = True
-DEFAULT_SCROLLBACK_URI = "terminal://"
-DEFAULT_SCROLLBACK_BUFFER_SIZE = 10_000
-DEFAULT_CONTEXT = InterfaceContext(
-    rows=DEFAULT_ROWS,
-    cols=DEFAULT_COLS,
-    encoding="utf-8",
-    convertEol=False,
-    auto_shutdown=DEFAULT_AUTO_SHUTDOWN,
-    scrollback_buffer_uri=DEFAULT_SCROLLBACK_URI,
-    scrollback_buffer_size=DEFAULT_SCROLLBACK_BUFFER_SIZE,
-    title="",
-)
-
 class Interface:
     """ Interface is like the controller that abstracts the IO layer to the GUI layer.
 
@@ -207,7 +192,7 @@ class Interface:
     # protocol level. These values can be overwritten on a case by case basis as needed
     # via the context argument. We don't use context so that it becomes available
     # for the protocol level context
-    default_context: Optional[InterfaceContext]
+    default_context: Optional[InterfaceContext] = None
     context: InterfaceContext
     context_class: Optional[type[InterfaceContext]] = None
 
@@ -250,8 +235,15 @@ class Interface:
         self.extra = extra
 
         # Setup the interface context.
-        self.context = DEFAULT_CONTEXT.copy()
-        if hasattr(self, "default_context") and self.default_context:
+        if not context:
+            print(f"Updating context with {context}")
+
+        if self.context_class:
+            self.context = self.context_class.with_defaults(context)
+        else:
+            self.context = InterfaceContext.with_defaults(context)
+
+        if self.default_context:
             self.context.update(self.default_context)
         if context:
             self.context.update(context)
@@ -367,7 +359,7 @@ class Interface:
 
         # Dispatch to all listeners
         for on_send in self._on_send_from_xterm_callbacks:
-            logger.debug(f"Sending data to xterm: {data}")
+            logger.debug(f"Sending data to xterm: {self.context.convertEol} / {data}")
             res = on_send(self, data)
             if asyncio.iscoroutine(res):
                 await res
@@ -376,7 +368,7 @@ class Interface:
         """Receives data from the xterm as a sequence of bytes.
         """
         if self.context.convertEol:
-            data = data.replace(b"\n", b"\r\n")
+            data = data.replace(b"\r", b"\n")
 
         # Dispatch to all listeners
         for on_receive in self._on_receive_from_frontend_callbacks:
@@ -434,7 +426,10 @@ class Interface:
 
     def get_terminal_buffer(self) -> bytes:
         """Get the current screen contents as a string"""
-        return self.buffer.get_terminal_buffer()
+        buf = self.buffer.get_terminal_buffer()
+        if self.context.convertEol:
+            buf = buf.replace(b"\n", b"\r\n")
+        return buf
 
     def get_terminal_cursor_position(self) -> tuple:
         """Get the current cursor position"""

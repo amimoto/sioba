@@ -3,8 +3,6 @@
 from nicegui import ui
 from sioba_nicegui.xterm import XTermInterface
 
-#ShellInterface("cmd.exe")
-#iface = ShellInterface("bash")
 xterm = XTermInterface.from_uri("exec://bash").classes("w-full")
 
 # Make sure static files can be found

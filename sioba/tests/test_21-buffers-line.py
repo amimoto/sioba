@@ -11,10 +11,7 @@ class TestBuffers(IsolatedAsyncioTestCase):
         """ Test the RawBuffer implementation. """
 
         buffer_uri = "line://"
-        context = InterfaceContext(
-            encoding="utf-8",
-            convertEol=True,
-            auto_shutdown=True,
+        context = InterfaceContext.with_defaults(
             title="Test Interface",
             scrollback_buffer_uri=buffer_uri,
             scrollback_buffer_size=10,

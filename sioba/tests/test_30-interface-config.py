@@ -12,8 +12,8 @@ class TestingContext(TestCase):
         server.start()
 
         # Test if we can import InterfaceContext without errors
-        context = InterfaceContext(
-            uri=f"tcp://localhost:{server.port}",
+        context = InterfaceContext.with_defaults(
+            uri=f"tcp://localhost1:{server.port}",
             encoding="utf-8",
             convertEol=True,
             auto_shutdown=True,
@@ -22,7 +22,7 @@ class TestingContext(TestCase):
         self.assertIsInstance(context, InterfaceContext)
 
         # Test if the parameters are set correctly
-        self.assertEqual(context.uri, f"tcp://localhost:{server.port}")
+        self.assertEqual(context.uri, f"tcp://localhost1:{server.port}")
         self.assertEqual(context.encoding, "utf-8")
         self.assertTrue(context.convertEol)
         self.assertTrue(context.auto_shutdown)
@@ -31,20 +31,20 @@ class TestingContext(TestCase):
         self.assertEqual(context.cols, 80)
 
         # Test the parse_uri function
-        parsed = InterfaceContext.from_uri(f"tcp://localhost:{server.port}?rows=52&cols=100")
+        parsed = InterfaceContext.from_uri(f"tcp://localhost2:{server.port}?rows=52&cols=100")
         self.assertIsInstance(parsed, InterfaceContext)
         self.assertEqual(parsed.scheme, "tcp")
-        self.assertEqual(parsed.netloc, f"localhost:{server.port}")
+        self.assertEqual(parsed.netloc, f"localhost2:{server.port}")
         self.assertEqual(parsed.rows, 52)
         self.assertEqual(parsed.cols, 100)
         self.assertEqual(parsed.query, {"rows": ["52"], "cols": ["100"]})
         self.assertEqual(parsed.encoding, "utf-8")
-        self.assertEqual(parsed.convertEol, False)
+        self.assertEqual(parsed.convertEol, True)
         self.assertEqual(parsed.auto_shutdown, True)
 
         # Override some parameters
         parsed = InterfaceContext.from_uri(
-            f"tcp://localhost:{server.port}?rows=52&cols=100",
+            f"tcp://localhost3:{server.port}?rows=52&cols=100",
             encoding="ascii",
             auto_shutdown=False,
         )
@@ -57,7 +57,7 @@ class TestingContext(TestCase):
 
         # Let's add some extra parameters
         parsed = InterfaceContext.from_uri(
-            f"tcp://localhost:{server.port}?rows=52&cols=100",
+            f"tcp://localhost4:{server.port}?rows=52&cols=100",
             extra_params={
                 "custom_param": "custom_value",
             }
@@ -70,19 +70,19 @@ class TestingContext(TestCase):
             # This class inherits from InterfaceContext to test inheritance and additional functionality
             test: str = "default_value"
 
-        inherited_context = InheritedContext(
-            uri=f"tcp://localhost:{server.port}",
+        inherited_context = InheritedContext.with_defaults(
+            uri=f"tcp://localhost5:{server.port}",
             title="Test Interface",
         )
         self.assertIsInstance(inherited_context, InheritedContext)
-        self.assertEqual(inherited_context.uri, f"tcp://localhost:{server.port}")
+        self.assertEqual(inherited_context.uri, f"tcp://localhost5:{server.port}")
 
         VERIFY = {
                 'auto_shutdown': True,
                 'cols': 80,
                 'cursor_col': 0,
                 'cursor_row': 0,
-                'convertEol': False,
+                'convertEol': True,
                 'encoding': 'utf-8',
                 'extra_params': {},
                 'host': None,
@@ -95,13 +95,12 @@ class TestingContext(TestCase):
                 'rows': 24,
                 'scheme': None,
                 'scrollback_buffer_size': 10000,
-                'scrollback_buffer_uri': None,
+                'scrollback_buffer_uri': "terminal://",
                 'test': 'default_value',
                 'title': 'Test Interface',
-                'uri': f'tcp://localhost:{server.port}',
+                'uri': f'tcp://localhost5:{server.port}',
                 'username': None
             }
-
         self.assertEqual( inherited_context.asdict(), VERIFY)
 
         # Make sure copy works

@@ -78,7 +78,6 @@ class SocketInterface(Interface):
         # Local echo the input
         await self.send_to_frontend(data)
 
-    @logger.catch
     async def shutdown_interface(self):
         """Shutdown the interface"""
         # Cancel background tasks
@@ -93,7 +92,7 @@ class SocketInterface(Interface):
             except ConnectionAbortedError:
                 pass
 
-from ssl import SSLContext, create_default_context
+from ssl import SSLContext, create_default_context, SSLError
 
 @dataclass
 class SecureSocketConfig(InterfaceContext):
@@ -133,3 +132,8 @@ class SecureSocketInterface(SocketInterface):
 
         return True
 
+    async def shutdown_interface(self):
+        try:
+            await super().shutdown_interface()
+        except SSLError as e:
+            logger.warning(f"SSL error during shutdown: {e}")

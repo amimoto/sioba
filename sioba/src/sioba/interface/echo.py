@@ -1,19 +1,16 @@
-from .base import Interface, InterfaceContext, register_scheme
+from .base import (
+    Interface,
+    InterfaceContext,
+    register_scheme,
+)
 
-from loguru import logger
+import asyncio
 
 @register_scheme("echo")
 class EchoInterface(Interface):
 
-    default_context = InterfaceContext(
-        convertEol = True,
-    )
-
-    @logger.catch
-    async def receive_from_frontend(self, data: bytes):
-        """ Directly transfer what was received to the output creating
-            a server based echo.
-        """
-        await self.send_to_frontend(data)
-        await super().receive_from_frontend(data)
+    def initialize(self, **_) -> None:
+        async def _on_receive_from_frontend(interface: Interface, data: bytes):
+            await interface.send_to_frontend(data)
+        self.on_receive_from_frontend(_on_receive_from_frontend)
 

@@ -1,3 +1,4 @@
+import types
 from typing import (
     Any,
     Optional,
@@ -13,15 +14,39 @@ from dataclasses import (
 )
 from urllib.parse import urlparse, parse_qs
 
+DEFAULT_ROWS = 24
+DEFAULT_COLS = 80
+DEFAULT_AUTO_SHUTDOWN = True
+DEFAULT_SCROLLBACK_URI = "terminal://"
+DEFAULT_SCROLLBACK_BUFFER_SIZE = 10_000
+
+DEFAULT_VALUES = dict(
+    rows=DEFAULT_ROWS,
+    cols=DEFAULT_COLS,
+    title="",
+
+    cursor_col=0,
+    cursor_row=0,
+
+    scrollback_buffer_uri=DEFAULT_SCROLLBACK_URI,
+    scrollback_buffer_size=DEFAULT_SCROLLBACK_BUFFER_SIZE,
+
+    encoding="utf-8",
+
+    convertEol=True,
+    auto_shutdown=DEFAULT_AUTO_SHUTDOWN,
+)
+
 def cast_str_to_type(raw: str, typ: Any) -> Any:
     origin = get_origin(typ)
     args   = get_args(typ)
 
     # Optional[T] → just T
-    if origin is Union and type(None) in args:
-        non_none = [t for t in args if t is not type(None)]
-        if len(non_none) == 1:
-            return cast_str_to_type(raw, non_none[0])
+    if origin in [Union, types.UnionType]:
+        if type(None) in args:
+            non_none = [t for t in args if t is not type(None)]
+            if len(non_none) == 1:
+                return cast_str_to_type(raw, non_none[0])
 
     # primitives
     if typ is str:
@@ -34,7 +59,9 @@ def cast_str_to_type(raw: str, typ: Any) -> Any:
         return float(raw)
 
     if typ is bool:
-        return raw.lower() in ("1","true","yes")
+        if isinstance(raw, str):
+            return raw.lower() in ("1","true","yes")
+        return bool(raw)
 
     return raw
 
@@ -51,19 +78,19 @@ class InterfaceContext:
     params: Optional[str] = None
     query: dict[str, list[str]] = field(default_factory=dict)
 
-    rows: int = 24
-    cols: int = 80
-    title: str = ""
+    rows: int|None = None
+    cols: int|None = None
+    title: str|None = None
 
-    cursor_row: int = 0
-    cursor_col: int = 0
+    cursor_row: int|None = None
+    cursor_col: int|None = None
 
-    encoding: str = "utf-8"
-    convertEol: bool = False
-    auto_shutdown: bool = True
+    encoding: str|None = None
+    convertEol: bool|None = None
+    auto_shutdown: bool|None = None
 
     scrollback_buffer_uri: Optional[str] = None
-    scrollback_buffer_size: int = 10_000
+    scrollback_buffer_size: int|None = None
 
     extra_params: dict[str, Any] = field(default_factory=dict) 
 
@@ -98,7 +125,7 @@ class InterfaceContext:
 
         kwargs.update(extra)
 
-        return cls(**kwargs)
+        return cls.with_defaults(kwargs)
 
     def asdict(self):
         return asdict(self)
@@ -107,11 +134,24 @@ class InterfaceContext:
         """Return a copy of the configuration."""
         return self.__class__(**asdict(self))
 
-    def update(self, options: "InterfaceContext") -> None:
+    def update(self, options: "InterfaceContext|dict") -> "InterfaceContext":
         """Update the configuration with another InterfaceContext instance."""
-        for k, v in asdict(options).items():
-            if v is not None:
-                setattr(self, k, v)
+        attribs_as_dict = {}
+        if isinstance(options, self.__class__):
+            attribs_as_dict = asdict(options)
+        elif isinstance(options, dict):
+            attribs_as_dict = options
+
+        for f in fields(self.__class__):
+            if f.name not in attribs_as_dict:
+                continue
+            raw_value = attribs_as_dict[f.name]
+            if raw_value is None:
+                continue
+            massaged_value = cast_str_to_type(raw_value, f.type)
+            setattr(self, f.name, massaged_value)
+
+        return self
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value by key."""
@@ -127,4 +167,17 @@ class InterfaceContext:
                     )
             return val
 
+    @classmethod
+    def with_defaults(cls, options: "InterfaceContext|None" = None, **kwargs) -> "InterfaceContext":
+        """ Return a copy of the configuration with default values filled in. """
 
+        # Setup with default values
+        context = cls().update(DEFAULT_VALUES)
+
+        if options:
+            context.update(options)
+
+        if kwargs:
+            context.update(kwargs)
+
+        return context

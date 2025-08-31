@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from .context import InterfaceContext as InterfaceContext
+from .context import (
+    InterfaceContext as InterfaceContext,
+)
 
 from .interface.base import (
     Interface as Interface,

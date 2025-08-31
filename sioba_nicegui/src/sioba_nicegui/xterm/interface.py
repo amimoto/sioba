@@ -134,12 +134,16 @@ class XTermInterface(XTerm):
 
         async def handle_client_data(e: Any) -> None:
             """Handle client data input."""
-            data, _ = e.args
-            if not len(data):
+            b64_data, _ = e.args
+            if not len(b64_data):
                 return
 
-            if isinstance(data, str):
-                await interface.receive_from_frontend(base64.b64decode(data))
+            if isinstance(b64_data, str):
+
+                # data is is in base64 format
+                data = base64.b64decode(b64_data)
+
+                await interface.receive_from_frontend(data)
                 self.metadata.last_activity = datetime.now()
 
         async def handle_client_mount(e: Any) -> None:

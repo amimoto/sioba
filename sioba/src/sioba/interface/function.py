@@ -147,11 +147,7 @@ class FunctionInterface(Interface):
             console.print(*a, **kw)
         text = capture.get()
 
-        # Convert newlines to newline + carriage return for terminal display
-        text = text.replace("\r\n", "\n")
-
         # Put the data in the send queue
-        logger.debug(f"Sending to frontend: {text}")
         try:
             self.send_queue.sync_q.put(text.encode())
         except Exception as ex:

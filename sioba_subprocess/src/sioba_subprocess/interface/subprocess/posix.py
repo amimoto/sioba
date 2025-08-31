@@ -61,11 +61,12 @@ class PosixInterface(Interface):
         self._stop_evt = threading.Event()
         self._write_lock = threading.Lock()
         self._shutting_down = False
-        self._loop = asyncio.get_running_loop()
 
     @logger.catch
     async def start_interface(self):
         """Starts the shell process using threads for I/O and monitoring."""
+        self._loop = asyncio.get_running_loop()
+
         shell = default_shell()
         invoke_command = self.invoke_command or shell
 

@@ -62,6 +62,9 @@ class TestInterfaces(IsolatedAsyncioTestCase):
         # Start the test server
         certfile = CERT_DIR / "future/certificate.crt"
         keyfile = CERT_DIR / "future/private.key"
+        self.assertTrue(certfile.exists())
+        self.assertTrue(keyfile.exists())
+
         server = create_server(
             SSLSingleRequestServer,
             certfile=certfile.resolve(),
