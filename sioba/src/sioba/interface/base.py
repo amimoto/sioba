@@ -365,7 +365,10 @@ class Interface:
                 await res
 
     async def handle_send_to_frontend(self, data: bytes) -> None:
-        """Handles sending data to the frontend, allowing subclasses to override."""
+        """
+        Handles sending data to the frontend.
+        Available for subclasses to override.
+        """
         pass
 
     async def receive_from_frontend(self, data: bytes) -> None:
@@ -386,7 +389,10 @@ class Interface:
                 await res
 
     async def handle_receive_from_frontend(self, data: bytes) -> None:
-        """Handles receiving data from the frontend, allowing subclasses to override."""
+        """
+        Handles receiving data from the frontend
+        Available for subclasses to override.
+        """
         pass
 
     def filehandle(self) -> VirtualIO:
