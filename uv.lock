@@ -1534,11 +1534,25 @@ dependencies = [
     { name = "sioba" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "loguru", specifier = ">=0.7.2" },
     { name = "pywinpty", marker = "sys_platform == 'win32'", specifier = ">=2.0.4" },
     { name = "sioba", editable = "sioba" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "pytest-asyncio", specifier = ">=0.25.3" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
 ]
 
 [[package]]

@@ -235,9 +235,6 @@ class Interface:
         self.extra = extra
 
         # Setup the interface context.
-        if not context:
-            print(f"Updating context with {context}")
-
         if self.context_class:
             self.context = self.context_class.with_defaults(context)
         else:
@@ -354,6 +351,9 @@ class Interface:
         if self.context.convertEol:
             data = data.replace(b"\n", b"\r\n")
 
+        # Process the data through a subclassable function
+        await self.handle_send_to_frontend(data)
+
         # updates the pyte screen before passing data through
         await self.buffer.feed(data)
 
@@ -364,17 +364,30 @@ class Interface:
             if asyncio.iscoroutine(res):
                 await res
 
+    async def handle_send_to_frontend(self, data: bytes) -> None:
+        """Handles sending data to the frontend, allowing subclasses to override."""
+        pass
+
     async def receive_from_frontend(self, data: bytes) -> None:
         """Receives data from the xterm as a sequence of bytes.
         """
         if self.context.convertEol:
-            data = data.replace(b"\r", b"\n")
+            # We convert all \r\n and just \r to \n since we want to
+            # handle newlines in a consistent manner as \n
+            data = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+        # Process the data through a subclassable function
+        await self.handle_receive_from_frontend(data)
 
         # Dispatch to all listeners
         for on_receive in self._on_receive_from_frontend_callbacks:
             res = on_receive(self, data)
             if asyncio.iscoroutine(res):
                 await res
+
+    async def handle_receive_from_frontend(self, data: bytes) -> None:
+        """Handles receiving data from the frontend, allowing subclasses to override."""
+        pass
 
     def filehandle(self) -> VirtualIO:
         """Returns a file-like object that can be used to write to the interface."""

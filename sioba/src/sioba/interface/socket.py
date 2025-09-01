@@ -4,11 +4,6 @@ from .base import Interface, InterfaceState, InterfaceContext, register_scheme
 from loguru import logger
 from dataclasses import dataclass
 
-class ConnectionConfig(TypedDict):
-    """ Used to provide information into the asyncio.open_connection function """
-    host: str
-    port: int
-
 @register_scheme("tcp")
 class SocketInterface(Interface):
 
@@ -16,10 +11,6 @@ class SocketInterface(Interface):
     writer: Optional[asyncio.StreamWriter] = None
     _receive_task: Optional[asyncio.Task] = None
     _send_task: Optional[asyncio.Task] = None
-
-    context = InterfaceContext(
-        convertEol = True,
-    )
 
     async def start_interface(self) -> bool:
         """Launch the socket interface"""
@@ -29,8 +20,8 @@ class SocketInterface(Interface):
         # Start a socket connection
         context = self.context
         connection = {
-            "host": context.host or "localhost",
-            "port": context.port or 80,  # Default port if not specified
+            "host": context.host,
+            "port": context.port,
         }
         self.reader, self.writer = await asyncio.open_connection(**connection)
 
@@ -67,12 +58,13 @@ class SocketInterface(Interface):
                 return
 
     @logger.catch
-    async def receive_from_frontend(self, data: bytes):
+    async def handle_receive_from_frontend(self, data: bytes):
         """Add data to the send queue"""
         if not self.writer:
             return
 
         # Send to the socket
+        data = data.replace(b"\r", b"\r\n")
         self.writer.write(data)
 
         # Local echo the input

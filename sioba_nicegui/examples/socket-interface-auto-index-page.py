@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 from nicegui import ui
-from sioba import SocketInterface
+from sioba import SocketInterface, InterfaceContext
 from sioba_nicegui.xterm import XTermInterface
 
 socket_interface = SocketInterface(
-                        connection={
-                            "host": "example.com",
-                            "port": 80
-                        }
+                        context=InterfaceContext(
+                            host="example.com",
+                            port=80,
+                        ),
                     )
 xterm = XTermInterface(socket_interface).classes("w-full")
 
