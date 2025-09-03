@@ -276,7 +276,7 @@ class TestInterfaces(IsolatedAsyncioTestCase):
 
         # Shutdown the interface directly without triggering
         # the normal shutdown coroutine
-        await func.shutdown_interface()
+        await func.shutdown_handle()
 
         await func.receive_from_frontend(b"CHAR")
 

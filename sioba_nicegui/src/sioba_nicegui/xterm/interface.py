@@ -124,6 +124,7 @@ class XTermInterface(XTerm):
             if not (rows and cols):
                 return
 
+            logger.debug(f"Resizing terminal to {rows} rows and {cols} cols")
             interface.update_terminal_metadata(
                 {
                     "rows": rows,

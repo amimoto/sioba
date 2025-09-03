@@ -93,3 +93,8 @@ class TestTerminalBuffer(IsolatedAsyncioTestCase):
         await buffer.feed(long_string)
         self.assertEqual(context.cursor_row, 2)
         self.assertEqual(context.cursor_col, 6)
+
+    async def test_terminal_buffer_resizing(self):
+        pass
+
+

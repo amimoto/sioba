@@ -85,7 +85,7 @@ class PosixInterface(Interface):
 
         # Launch the child attached to our PTY slave on stdin/out/err
         popen_args = [ invoke_command, *self.invoke_args ]
-        print(f"Launching subprocess: {popen_args} in cwd={self.invoke_cwd}")
+        logger.debug(f"Launching subprocess: {popen_args} in cwd={self.invoke_cwd}")
         self.process = subprocess.Popen(
             popen_args,
             #invoke_command,
@@ -186,6 +186,7 @@ class PosixInterface(Interface):
         try:
             pgrp = os.getpgid(self.process.pid)
             os.killpg(pgrp, signal.SIGWINCH)
+            super().set_terminal_size(rows, cols, xpix, ypix)
         except ProcessLookupError:
             # Process already gone; no harm
             pass

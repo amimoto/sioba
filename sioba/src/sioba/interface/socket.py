@@ -58,7 +58,7 @@ class SocketInterface(Interface):
                 return
 
     @logger.catch
-    async def handle_receive_from_frontend(self, data: bytes):
+    async def receive_from_frontend_handle(self, data: bytes):
         """Add data to the send queue"""
         if not self.writer:
             return
@@ -70,7 +70,7 @@ class SocketInterface(Interface):
         # Local echo the input
         await self.send_to_frontend(data)
 
-    async def shutdown_interface(self):
+    async def shutdown_handle(self):
         """Shutdown the interface"""
         # Cancel background tasks
         if self._receive_task:
@@ -110,8 +110,8 @@ class SecureSocketInterface(SocketInterface):
             ssl_ctx = create_default_context()
 
         connection = {
-            "host": context.host or "localhost",
-            "port": context.port or 80,  # Default port if not specified
+            "host": context.host,
+            "port": context.port,
             "ssl": ssl_ctx,
         }
         self.reader, self.writer = await asyncio.open_connection(**connection)
@@ -124,8 +124,8 @@ class SecureSocketInterface(SocketInterface):
 
         return True
 
-    async def shutdown_interface(self):
+    async def shutdown_handle(self):
         try:
-            await super().shutdown_interface()
+            await super().shutdown_handle()
         except SSLError as e:
             logger.warning(f"SSL error during shutdown: {e}")

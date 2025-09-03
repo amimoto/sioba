@@ -5,7 +5,7 @@ from .base import (
 
 @register_scheme("echo")
 class EchoInterface(Interface):
-    async def handle_receive_from_frontend(self, data: bytes) -> None:
+    async def receive_from_frontend_handle(self, data: bytes) -> None:
         await self.send_to_frontend(data)
 
 

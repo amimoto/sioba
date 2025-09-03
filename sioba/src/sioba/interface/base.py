@@ -264,7 +264,7 @@ class Interface:
             self.buffer = buffer_from_uri(
                 self.context.scrollback_buffer_uri,
                 interface=self,
-                on_set_terminal_title=self.on_set_terminal_title_handle,
+                on_set_terminal_title=self.set_terminal_title,
             )
         else:
             self.buffer = Buffer(interface=self)
@@ -304,7 +304,7 @@ class Interface:
         """Callback when the shell process shutdowns."""
         if self.state != InterfaceState.STARTED:
             return
-        await self.shutdown_interface()
+        await self.shutdown_handle()
         self.state = InterfaceState.SHUTDOWN
         logger.debug(f"Shutting down interface {self.id}")
         for on_shutdown in self._on_shutdown_callbacks:
@@ -312,7 +312,11 @@ class Interface:
             if asyncio.iscoroutine(res):
                 await res
 
-    async def shutdown_interface(self) -> None:
+    def on_shutdown(self, on_shutdown: OnShutdownCallbackType) -> None:
+        """Add a callback for when the shell process shutdowns"""
+        self._on_shutdown_callbacks.add(on_shutdown)
+
+    async def shutdown_handle(self) -> None:
         pass
 
     #######################################
@@ -352,7 +356,7 @@ class Interface:
             data = data.replace(b"\n", b"\r\n")
 
         # Process the data through a subclassable function
-        await self.handle_send_to_frontend(data)
+        await self.send_to_frontend_handle(data)
 
         # updates the pyte screen before passing data through
         await self.buffer.feed(data)
@@ -364,7 +368,7 @@ class Interface:
             if asyncio.iscoroutine(res):
                 await res
 
-    async def handle_send_to_frontend(self, data: bytes) -> None:
+    async def send_to_frontend_handle(self, data: bytes) -> None:
         """
         Handles sending data to the frontend.
         Available for subclasses to override.
@@ -380,7 +384,7 @@ class Interface:
             data = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
 
         # Process the data through a subclassable function
-        await self.handle_receive_from_frontend(data)
+        await self.receive_from_frontend_handle(data)
 
         # Dispatch to all listeners
         for on_receive in self._on_receive_from_frontend_callbacks:
@@ -388,7 +392,7 @@ class Interface:
             if asyncio.iscoroutine(res):
                 await res
 
-    async def handle_receive_from_frontend(self, data: bytes) -> None:
+    async def receive_from_frontend_handle(self, data: bytes) -> None:
         """
         Handles receiving data from the frontend
         Available for subclasses to override.
@@ -400,28 +404,12 @@ class Interface:
         return VirtualIO(self)
 
     #######################################
-    # Other Events handling
+    # Terminal Buffer Abstraction
     #######################################
 
     def on_set_terminal_title(self, on_set_terminal_title: OnSetTitleCallbackType) -> None:
         """Add a callback for when the window title is set"""
         self._on_set_terminal_title_callbacks.add(on_set_terminal_title)
-
-    def on_set_terminal_title_handle(self, title: str) -> None:
-        """Callback when the window title is set."""
-        self.context.title = title
-        for on_set_terminal_title in self._on_set_terminal_title_callbacks:
-            res = on_set_terminal_title(self, title)
-            if asyncio.iscoroutine(res):
-                asyncio.run(res)
-
-    def on_shutdown(self, on_shutdown: OnShutdownCallbackType) -> None:
-        """Add a callback for when the shell process shutdowns"""
-        self._on_shutdown_callbacks.add(on_shutdown)
-
-    #######################################
-    # Terminal Buffer Abstraction
-    #######################################
 
     def set_terminal_title(self, title:str) -> None:
         """ This sets the terminal title via the EventsScreen.
@@ -432,7 +420,18 @@ class Interface:
             but this is available so we can intercept requests and
             do anything fun with it
         """
-        self.on_set_terminal_title_handle(title)
+        self.context.title = title
+
+        self.set_terminal_title_handle(title)
+
+        for on_set_terminal_title in self._on_set_terminal_title_callbacks:
+            res = on_set_terminal_title(self, title)
+            if asyncio.iscoroutine(res):
+                asyncio.run(res)
+
+    def set_terminal_title_handle(self, title: str) -> None:
+        """Callback when the window title is set."""
+        pass
 
     def set_terminal_size(self, rows: int, cols: int, xpix: int=0, ypix: int=0) -> None:
         """Sets the shell window size."""
@@ -480,6 +479,8 @@ class Interface:
 
         self.context.rows = min_row
         self.context.cols = min_col
+
+        logger.debug(f"Setting terminal size to {min_row} rows and {min_col} cols")
 
         self.set_terminal_size(rows=min_row, cols=min_col)
 

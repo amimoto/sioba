@@ -64,7 +64,7 @@ class EventsScreen(pyte.Screen):
         to trigger further hooks.
         """
         super().set_title(param)
-        self.terminal_buffer.interface.on_set_terminal_title_handle(title=param)
+        self.terminal_buffer.interface.set_terminal_title(title=param)
 
     def index(self) -> None:
         """

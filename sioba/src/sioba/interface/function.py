@@ -111,7 +111,7 @@ class FunctionInterface(Interface):
 
         return True
 
-    async def shutdown_interface(self) -> None:
+    async def shutdown_handle(self) -> None:
         """Shutdown the interface"""
         if self.send_queue:
             await self.send_queue.aclose()
