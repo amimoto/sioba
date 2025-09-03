@@ -2,7 +2,7 @@
 name = "sioba_subprocess"
 version = "0.4.20250825"
 description = "Sioba Subproces IO Interface layer"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "sioba>=0.3.20250806",
     "loguru>=0.7.2",

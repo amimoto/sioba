@@ -2,7 +2,7 @@
 name = "sioba_nicegui"
 version = "0.1.20250824"
 description = "Sioba Interface to XTerm.js bindings"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "nicegui>=2.23.0",
     "sioba>=0.3.20250806",
