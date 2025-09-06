@@ -1,6 +1,6 @@
 [project]
 name = "sioba"
-version = "0.3.2050806"
+version = "0.4.2050906.3"
 description = "Sioba IO Abstraction Layer"
 requires-python = ">=3.10"
 dependencies = [
@@ -14,6 +14,7 @@ license = { file = "LICENSE" }
 classifiers = [
   "License :: OSI Approved :: MIT License",
 ]
+readme = { file = "README.md", content-type = "text/markdown" }
 
 [build-system]
 requires = ["uv_build>=0.8.5,<1"]
@@ -43,5 +44,3 @@ dev = [
 [tool.uv.sources]
 sioba = { workspace = true }
 
-[tool.setuptools]
-license-files = ["LICEN[CS]E*", "COPYING*", "NOTICE*"]

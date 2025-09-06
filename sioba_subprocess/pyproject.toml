@@ -1,14 +1,17 @@
 [project]
 name = "sioba_subprocess"
-version = "0.4.20250825"
+version = "0.4.20250925"
 description = "Sioba Subproces IO Interface layer"
 requires-python = ">=3.10"
 dependencies = [
-    "sioba>=0.3.20250806",
+    "sioba>=0.4.20250906",
     "loguru>=0.7.2",
     "pywinpty>=2.0.4; sys_platform == 'win32'",
 ]
+readme = "README.md"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
+authors = [{ name = "Aki Mimoto", email = "aki@bako.ca" }]
 classifiers = [
   "License :: OSI Approved :: MIT License",
 ]
@@ -27,9 +30,11 @@ dev = [
     "pytest-cov>=6.2.1",
 ]
 
-# Override the runtime requirement when *inside* the workspace
 [tool.uv.sources]
 sioba = { workspace = true }
 
-[tool.setuptools]
-license-files = ["LICEN[CS]E*", "COPYING*", "NOTICE*"]
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true

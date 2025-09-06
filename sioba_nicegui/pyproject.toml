@@ -1,11 +1,11 @@
 [project]
 name = "sioba_nicegui"
-version = "0.1.20250824"
+version = "0.1.20250906"
 description = "Sioba Interface to XTerm.js bindings"
 requires-python = ">=3.10"
 dependencies = [
     "nicegui>=2.23.0",
-    "sioba>=0.3.20250806",
+    "sioba>=0.4.20250906",
 ]
 license = { file = "LICENSE" }
 classifiers = [
@@ -22,7 +22,7 @@ dev = [
     "pytest>=8.4.1",
     "pytest-asyncio>=0.25.3",
     "pytest-cov>=6.2.1",
-    "sioba_subprocess>=0.4.20250825",
+    "sioba_subprocess>=0.4.20250925",
 ]
 
 # Override the runtime requirement when *inside* the workspace
@@ -30,5 +30,3 @@ dev = [
 sioba = { workspace = true }
 sioba_subprocess = { workspace = true }
 
-[tool.setuptools]
-license-files = ["LICEN[CS]E*", "COPYING*", "NOTICE*"]
