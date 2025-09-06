@@ -8,10 +8,10 @@ dependencies = [
     "loguru>=0.7.2",
     "pywinpty>=2.0.4; sys_platform == 'win32'",
 ]
-
-# Override the runtime requirement when *inside* the workspace
-[tool.uv.sources]
-sioba = { workspace = true }
+license = { file = "LICENSE" }
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+]
 
 [build-system]
 requires = ["uv_build>=0.8.5,<1"]
@@ -27,3 +27,9 @@ dev = [
     "pytest-cov>=6.2.1",
 ]
 
+# Override the runtime requirement when *inside* the workspace
+[tool.uv.sources]
+sioba = { workspace = true }
+
+[tool.setuptools]
+license-files = ["LICEN[CS]E*", "COPYING*", "NOTICE*"]

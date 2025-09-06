@@ -7,11 +7,11 @@ dependencies = [
     "nicegui>=2.23.0",
     "sioba>=0.3.20250806",
 ]
+license = { file = "LICENSE" }
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+]
 
-# Override the runtime requirement when *inside* the workspace
-[tool.uv.sources]
-sioba = { workspace = true }
-sioba_subprocess = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.8.5,<1"]
@@ -24,3 +24,11 @@ dev = [
     "pytest-cov>=6.2.1",
     "sioba_subprocess>=0.4.20250825",
 ]
+
+# Override the runtime requirement when *inside* the workspace
+[tool.uv.sources]
+sioba = { workspace = true }
+sioba_subprocess = { workspace = true }
+
+[tool.setuptools]
+license-files = ["LICEN[CS]E*", "COPYING*", "NOTICE*"]

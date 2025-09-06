@@ -10,10 +10,10 @@ dependencies = [
     "loguru>=0.7.2",
     "janus>=2.0.0",
 ]
-
-# Override the runtime requirement when *inside* the workspace
-[tool.uv.sources]
-sioba = { workspace = true }
+license = { file = "LICENSE" }
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+]
 
 [build-system]
 requires = ["uv_build>=0.8.5,<1"]
@@ -39,3 +39,9 @@ dev = [
 "sioba.buffer".line = "sioba.buffer.line:LineBuffer"
 "sioba.buffer".terminal = "sioba.buffer.terminal:TerminalBuffer"
 
+# Override the runtime requirement when *inside* the workspace
+[tool.uv.sources]
+sioba = { workspace = true }
+
+[tool.setuptools]
+license-files = ["LICEN[CS]E*", "COPYING*", "NOTICE*"]

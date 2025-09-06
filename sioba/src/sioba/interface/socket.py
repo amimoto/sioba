@@ -105,7 +105,10 @@ class SecureSocketInterface(SocketInterface):
 
         # Start a socket connection
         try:
-            ssl_ctx = context.create_ssl_context(self) # type: ignore
+          if context.create_ssl_context:
+              ssl_ctx = context.create_ssl_context(self) # type: ignore
+          else:
+              ssl_ctx = create_default_context()
         except AttributeError:
             ssl_ctx = create_default_context()
 

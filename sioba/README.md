@@ -22,16 +22,16 @@ A small Python library that unifies interactive IO (functions, TCP/SSL sockets) 
 **From source (recommended until published):**
 
 ```bash
-pip install git+https://github.com/amimoto/sioba
+pip install sioba
 ```
 
 **Using uv:**
 
 ```bash
-uv pip install git+https://github.com/amimoto/sioba
+uv pip install sioba
 ```
 
-* Requires **Python ≥ 3.9**.
+* Requires **Python ≥ 3.10**.
 * Runtime deps: `loguru`, `rich`, `pyte`, `janus`.
 
 > TODO: Add PyPI install instructions if/when the project is published.
@@ -93,20 +93,6 @@ Here’s a high-level architecture tour of **sioba**, focused on how **Interface
 ## Big picture
 
 sioba separates **transport/control** from **screen state** and **configuration**:
-
-```
-         (user / UI)                                (remote / app)
- keystrokes ──► Interface ◄── callbacks           sockets / functions
-                    │
-                    │ send_to_frontend(data)
-                    ▼
-                 Buffer ── keeps scrollback, cursor, title
-                    ▲
-                    │ reads from Context (size, encoding, etc.)
-                    │ writes runtime metadata (cursor_row/col, title)
-                    ▼
-                 Context ── shared configuration + runtime state
-```
 
 * **Interface** (`sioba.interface.base.Interface`) owns the lifecycle, transports, and callback wiring.
 * **Buffer** (`sioba.buffer.base.Buffer` and implementations) is a sidecar that maintains a *screen/scrollback view* of what the user should see.
@@ -470,7 +456,7 @@ To make your `myproto` interface and `ring` buffer discoverable **without import
 [project]
 name = "mypkg-sioba-plugins"
 version = "0.1.0"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = ["sioba>=0.3"]  # pin to your desired version
 
 [project.entry-points]
@@ -662,7 +648,7 @@ class DummyBuffer:
 
 ## Compatibility & Requirements
 
-* Python **≥ 3.9**.
+* Python **≥ 3.10**.
 * Tested interfaces/buffers use `asyncio`, `pyte`, `rich`, `loguru`, `janus`.
 * Defaults: `convertEol=True` (outgoing `\n` → `\r\n`), encoding `utf-8`.
 

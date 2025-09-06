@@ -9,7 +9,7 @@ import time
 import datetime
 
 def terminal_code(interface: FunctionInterface):
-    interface.print("Hello, World!")
+    interface.print("[blue]Hello, World[/blue]!")
     interface.print("This is a simple script.")
 
     name = interface.input("What's your name? ")

@@ -1,12 +1,12 @@
-# SIOba: Simple IO Backend Abstraction
+# sIOba: Simple IO Backend Abstraction
 
 ## Introduction
 
+sIOba (Simple IO Backend Abstraction) is a Python library designed to provide a unified way to handle various input/output (I/O) backends and connect them to user interfaces, particularly terminal emulators. Its primary goal is to simplify the integration of interactive, text-based backends (like functions, sockets, or shell processes) with frontends such as web-based terminal emulators.
+
 <img src="sioba-image.png" width="300" />
 
-sioba (Simple IO Backend Abstraction) is a Python library designed to provide a unified way to handle various input/output (I/O) backends and connect them to user interfaces, particularly terminal emulators. Its primary goal is to simplify the integration of interactive, text-based backends (like functions, sockets, or shell processes) with frontends such as web-based terminal emulators.
-
-The name "sioba" is both a mild pun on soba noodles (evoking the imagery of I/O pipes) and an acronym for Simple IO Backend Abstraction.
+The name "sioba" is both a mild pun on soba noodles (evoking the imagery of I/O pipes) and an acronym for Simple IO Backend Abstraction. (In truth, it was just a name that didn't conflict with anything and had tangential relevance IO abstraction then backronymed)
 
 ## Modules
 
@@ -19,9 +19,7 @@ The sioba ecosystem is organized into several key modules:
 
 - **`sioba_nicegui`**: This module integrates `sioba` with the [NiceGUI](https://nicegui.io/) framework. It offers the `XTerm` component, which allows embedding an xterm.js-based terminal emulator directly into NiceGUI web user interfaces. This `XTerm` component can be connected to any `sioba` interface.
 
-- **`sioba_subprocess`**: Building upon `sioba` and `sioba_nicegui`, this module provides `ShellXTerm`. `ShellXTerm` is a specialized component for running and interacting with live shell subprocesses (e.g., bash, sh, cmd.exe) directly within a NiceGUI web application.
-
--  **INCOMPLETE IN DEVELOPMENT** - **`sioba_app`**: This module provides a command-line application called `sioterm`. `sioterm` leverages the `sioba` libraries to offer a multi-terminal web interface, allowing users to run and interact with various backends (like shell sessions or Python functions) from a web browser.
+- **`sioba_subprocess`**: Building upon `sioba` and `sioba_nicegui`, this module provides `ShellXTerm`. `ShellXTerm` is a specialized component for running and interacting with live shell subprocesses (e.g., bash, sh, cmd.exe) directly within a NiceGUI web application. Provided a separate package as importing it basically creates a remote execution exploit.
 
 ## Installation
 
@@ -33,14 +31,8 @@ pip install sioba_nicegui
 
 # To include support for shell subprocesses (ShellXTerm component)
 pip install sioba_subprocess
-
-# For the 'sioterm' command-line application
-# The 'sioterm' CLI is typically included when you install sioba_nicegui.
-# If you find it's not available, you might need to install sioba_app separately
-# or check for an extra like: pip install sioba_nicegui[app]
-# (Verify specific packaging if sioterm is missing after installing sioba_nicegui)
 ```
-Generally, `pip install sioba_nicegui` is the main entry point for most library users and also provides the `sioterm` application. `sioba_subprocess` is an optional add-on for shell capabilities.
+Generally, `pip install sioba_nicegui` is the main entry point for most library users. `sioba_subprocess` is an optional add-on for shell capabilities.
 
 ## Architecture
 
@@ -167,11 +159,8 @@ Contributions are welcome! If you have suggestions for improvements, new feature
 
 Please refer to the project's GitHub page for more details: [Link to GitHub Issues Page - To be updated]
 
-*(Please replace `[Link to GitHub Issues Page - To be updated]` with the actual link to your project's issues page, e.g., `https://github.com/your-username/sioba/issues`)*
-
 ## License
 
 This project is licensed under the **MIT-0 License**.
 
 You can find the full license text in the `LICENSE` file in the repository.
-*(Ensure a `LICENSE` file with the MIT-0 content exists at the root of your project.)*
