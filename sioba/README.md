@@ -34,8 +34,6 @@ uv pip install sioba
 * Requires **Python ≥ 3.10**.
 * Runtime deps: `loguru`, `rich`, `pyte`, `janus`.
 
-> TODO: Add PyPI install instructions if/when the project is published.
-
 ---
 
 ## Quickstart
@@ -47,15 +45,23 @@ import asyncio
 from sioba import interface_from_uri, Interface
 
 async def main():
+    # uri-like creation of interface instances for consistent
+    # invocation syntax that can be easily put into a conf
     echo = await interface_from_uri("echo://").start()
 
+    # Example of callback
     captured = []
-    async def on_send(_i: Interface, data: bytes):
+    async def on_send_to_frontend(_i: Interface, data: bytes):
         captured.append(data)
-    echo.on_send_to_frontend(on_send)
+    echo.on_send_to_frontend(on_send_to_frontend)
 
+    # Manually injec tdata into the interface instance
     await echo.receive_from_frontend(b"Hello, World!")
+
+    # We should have received the data in our callback
     print(captured[0])           # b"Hello, World!"
+
+    # Finally cleanup
     await echo.shutdown()
 
 asyncio.run(main())
@@ -67,6 +73,7 @@ asyncio.run(main())
 
 * **Interface & lifecycle**
 
+  * `sioba.interface_from_uri("tcp://host:1234?rows=52&cols=100")` parses URI + query into fields (scheme, host, port, rows, cols, etc.) creates InterfaceContext, Buffer, and the Interface itself.
   * `Interface` manages state (`INITIALIZED` → `STARTED` → `SHUTDOWN`), send/receive, callbacks, and a **buffer**.
   * `await interface.start()` then interact via `receive_from_frontend()` (input) and `on_send_to_frontend()` (output).
   * `get_terminal_buffer()` returns a snapshot of current screen/buffer; `get_terminal_cursor_position()` exposes (row, col).
@@ -86,13 +93,11 @@ asyncio.run(main())
   * Interfaces: decorate with `@register_scheme("myscheme")` or provide entry points under `sioba.interface`.
   * Buffers: `@register_buffer("mybuffer")` or entry point `sioba.buffer`.
 
-Here’s a high-level architecture tour of **sioba**, focused on how **Interface**, **Buffer**, and **Context** fit together.
-
 ---
 
-## Big picture
+## High Level Architecture
 
-sioba separates **transport/control** from **screen state** and **configuration**:
+sioba is composed of 3 primary concepts: **transport/control** from **screen state** and **configuration**:
 
 * **Interface** (`sioba.interface.base.Interface`) owns the lifecycle, transports, and callback wiring.
 * **Buffer** (`sioba.buffer.base.Buffer` and implementations) is a sidecar that maintains a *screen/scrollback view* of what the user should see.
@@ -100,15 +105,13 @@ sioba separates **transport/control** from **screen state** and **configuration*
 
 ---
 
-## The three core pieces
-
-### 1) Interface (transport + lifecycle)
+### 1 Interface (transport + lifecycle)
 
 **Where it lives:** `sioba.interface.base.Interface` (base class) with concrete types like:
 
-* `EchoInterface` (`sioba.interface.echo`)
-* `SocketInterface` & `SecureSocketInterface` (`sioba.interface.socket`)
-* `FunctionInterface` (`sioba.interface.function`)
+* `EchoInterface` (`echo://`) (`sioba.interface.echo`)
+* `SocketInterface` (`tcp://host:port?args`) & `SecureSocketInterface` (`ssl://host:port?args`) (`sioba.interface.socket`)
+* `FunctionInterface` (`sioba.interface.function`): Base class, doesn't provide direct functionality but makes scripted behaviors possible
 
 **What it does:**
 
@@ -141,7 +144,7 @@ sioba separates **transport/control** from **screen state** and **configuration*
 
 ---
 
-### 2) Buffer (screen/scrollback model)
+### 2 Buffer (screen/scrollback model)
 
 **Where it lives:** `sioba.buffer.base.Buffer` (base) with two built-ins:
 
@@ -152,12 +155,12 @@ sioba separates **transport/control** from **screen state** and **configuration*
 
 * Receives every **outgoing** byte stream from the Interface (`feed(data)`) and updates a persistent view of the screen.
 * Maintains **scrollback** bounded by `context.scrollback_buffer_size` (+rows for the line buffer).
-* Tracks **cursor position** and **title** and writes these into the shared **Context**:
-
-  * `TerminalBuffer` uses a custom `EventsCursor` to sync `cursor_row/col`.
-  * It overrides `set_title` to call `interface.set_terminal_title(...)`, which updates `context.title` and fires title callbacks.
 * Provides `dump_screen_state()` to serialize the view (used by `Interface.get_terminal_buffer()`).
-* Responds to window **resize**: `set_terminal_size(rows, cols, ...)`.
+
+* `TerminalBuffer` is based upon pyte to provide a terminal code aware buffer.
+  * It overrides `set_title` to call `interface.set_terminal_title(...)`, which updates `context.title` and fires title callbacks.
+  * Tracks **cursor position** and **title** and writes these into the shared **Context**:
+  * Responds to window **resize**: `set_terminal_size(rows, cols, ...)`.
 
 **Discovery / plugins:**
 
@@ -166,7 +169,7 @@ sioba separates **transport/control** from **screen state** and **configuration*
 
 ---
 
-### 3) InterfaceContext (shared config + runtime state)
+### 3 InterfaceContext (shared config + runtime state)
 
 **Where it lives:** `sioba.context.InterfaceContext` (a dataclass).
 
@@ -670,12 +673,10 @@ uv run pytest -q
 pytest -q
 ```
 
-> TODO: Add lint/format commands and contribution guidelines if desired.
-
 ---
 
 ## License
 
-> TODO: Add LICENSE file / identifier.
+sioba is available under the MIT license. See the LICENSE file for more info.
 
 ---
