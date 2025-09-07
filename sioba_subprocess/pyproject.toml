@@ -1,20 +1,19 @@
 [project]
 name = "sioba_subprocess"
-version = "0.4.20250925"
-description = "Sioba Subproces IO Interface layer"
+version = "0.4.20250925.4"
+description = "Sioba Subprocess IO Interface layer"
 requires-python = ">=3.10"
 dependencies = [
-    "sioba>=0.4.20250906",
+    "sioba>=0.4",
     "loguru>=0.7.2",
     "pywinpty>=2.0.4; sys_platform == 'win32'",
 ]
-readme = "README.md"
-requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [{ name = "Aki Mimoto", email = "aki@bako.ca" }]
 classifiers = [
   "License :: OSI Approved :: MIT License",
 ]
+readme = { file = "README.md", content-type = "text/markdown" }
 
 [build-system]
 requires = ["uv_build>=0.8.5,<1"]
