@@ -131,6 +131,17 @@ class InterfaceContext:
     def with_defaults(cls, options: "InterfaceContext|None" = None, **kwargs) -> "InterfaceContext":
         """ Return a copy of the configuration with default values filled in. """
 
+        # Setup with default values
+        context = cls().update(DEFAULT_VALUES)
+
+        if options:
+            context.update(options)
+
+        if kwargs:
+            context.update(kwargs)
+
+        return context
+
     def asdict(self):
         return asdict(self)
 
@@ -170,16 +181,6 @@ class InterfaceContext:
                         )
                     )
             return val
-        # Setup with default values
-        context = cls().update(DEFAULT_VALUES)
-
-        if options:
-            context.update(options)
-
-        if kwargs:
-            context.update(kwargs)
-
-        return context
 
 
 
