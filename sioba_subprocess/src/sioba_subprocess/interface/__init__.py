@@ -23,7 +23,6 @@ class ShellContext(InterfaceContext):
 
 @register_scheme("exec", context_class=ShellContext)
 class ShellInterface(SubprocessInterface):
-    @logger.catch
     def __init__(
                 self,
                 invoke_command: str = "",
@@ -40,11 +39,11 @@ class ShellInterface(SubprocessInterface):
                 cols: int = 80,
                 rows: int = 24,
                 auto_shutdown: bool = True,
-                context: Optional[InterfaceContext] = None,
+                context: Optional[ShellContext] = None,
             ):
 
         if context is None:
-            context = InterfaceContext()
+            context = self.context_class()
 
         if not invoke_command:
             invoke_command = context.path or INVOKE_COMMAND
@@ -63,6 +62,8 @@ class ShellInterface(SubprocessInterface):
                 invoke_args = invoke_args,
                 invoke_cwd = invoke_cwd,
 
+                context = context,
+
                 scrollback_buffer_size = scrollback_buffer_size,
 
                 # From superclass
@@ -74,3 +75,6 @@ class ShellInterface(SubprocessInterface):
                 rows = rows,
                 auto_shutdown = auto_shutdown,
         )
+
+        if not self.context:
+            self.context = context

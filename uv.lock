@@ -1294,7 +1294,7 @@ wheels = [
 
 [[package]]
 name = "sioba"
-version = "0.3.2050806"
+version = "0.4.2050906.4"
 source = { editable = "sioba" }
 dependencies = [
     { name = "janus" },
@@ -1332,7 +1332,7 @@ source = { editable = "." }
 
 [[package]]
 name = "sioba-nicegui"
-version = "0.1.20250824"
+version = "0.1.20250906.3"
 source = { editable = "sioba_nicegui" }
 dependencies = [
     { name = "nicegui" },
@@ -1363,7 +1363,7 @@ dev = [
 
 [[package]]
 name = "sioba-subprocess"
-version = "0.4.20250825"
+version = "0.4.20250925.4"
 source = { editable = "sioba_subprocess" }
 dependencies = [
     { name = "loguru" },

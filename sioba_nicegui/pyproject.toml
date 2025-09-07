@@ -1,16 +1,18 @@
 [project]
 name = "sioba_nicegui"
-version = "0.1.20250906"
-description = "Sioba Interface to XTerm.js bindings"
+version = "0.1.20250906.3"
+description = "XTerm.js bindings for NiceGUI and sioba"
 requires-python = ">=3.10"
 dependencies = [
     "nicegui>=2.23.0",
-    "sioba>=0.4.20250906",
+    "sioba>=0.4",
 ]
 license = { file = "LICENSE" }
+authors = [{ name = "Aki Mimoto", email = "aki@bako.ca" }]
 classifiers = [
   "License :: OSI Approved :: MIT License",
 ]
+readme = { file = "README.md", content-type = "text/markdown" }
 
 
 [build-system]
@@ -22,10 +24,9 @@ dev = [
     "pytest>=8.4.1",
     "pytest-asyncio>=0.25.3",
     "pytest-cov>=6.2.1",
-    "sioba_subprocess>=0.4.20250925",
+    "sioba_subprocess>=0.4.20250925.2",
 ]
 
-# Override the runtime requirement when *inside* the workspace
 [tool.uv.sources]
 sioba = { workspace = true }
 sioba_subprocess = { workspace = true }
