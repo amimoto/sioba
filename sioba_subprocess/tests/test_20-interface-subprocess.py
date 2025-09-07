@@ -46,6 +46,22 @@ class TestImportSubprocess(IsolatedAsyncioTestCase):
 
         return exec_interface
 
+    async def test_subprocess_invoke_minimal(self):
+        invoke_command_fpath = sys.executable
+        invoke_command_path = pathlib.Path(invoke_command_fpath)
+        self.assertTrue(invoke_command_path.exists(), "Python executable path does not exist.")
+        exec_uri = "exec:///"+str(invoke_command_path)
+
+        # Construct the exec URI for the subprocess interface
+        exec_interface = interface_from_uri(exec_uri)
+
+        from sioba_subprocess.interface import ShellInterface, ShellContext
+        self.assertIsInstance(exec_interface, ShellInterface)
+        self.assertEqual(exec_interface.context_class, ShellContext)
+        self.assertIsInstance(exec_interface.context, ShellContext)
+
+        await exec_interface.start()
+
     async def test_subprocess_invoke(self):
         """ Invoke and start a subprocess interface and do some IO
         """
