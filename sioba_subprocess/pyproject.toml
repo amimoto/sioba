@@ -1,6 +1,6 @@
 [project]
 name = "sioba_subprocess"
-version = "0.4.20250925.4"
+version = "0.4.20250925.5"
 description = "Sioba Subprocess IO Interface layer"
 requires-python = ">=3.10"
 dependencies = [
