@@ -104,7 +104,13 @@ class WindowsInterface(Interface):
         """Writes data to the shell."""
         if self.state != InterfaceState.STARTED:
             return
-        self.process.write(data.decode())
+        
+        # since winpty expects str input, decode bytes to str
+        data_decoded = data.decode()
+
+        # Convert LF to CRLF if needed
+        data_decoded = data_decoded.replace('\n', '\r\n')
+        self.process.write(data_decoded)
 
     async def shutdown_interface(self) -> None:
         """Shuts down the shell process."""
