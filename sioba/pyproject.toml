@@ -1,6 +1,6 @@
 [project]
 name = "sioba"
-version = "0.4.2050906.4"
+version = "0.5.2050911"
 description = "Sioba IO Abstraction Layer"
 requires-python = ">=3.10"
 dependencies = [

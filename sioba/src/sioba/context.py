@@ -1,10 +1,10 @@
 import types
 from typing import (
     Any,
-    Optional,
     Union,
     get_origin,
     get_args,
+    TypeAlias,
 )
 from dataclasses import (
     dataclass,
@@ -44,9 +44,18 @@ def cast_str_to_type(raw: str, typ: Any) -> Any:
     # Optional[T] → just T
     if origin in [Union, types.UnionType]:
         if type(None) in args:
-            non_none = [t for t in args if t is not type(None)]
+            non_none = []
+            for t in args:
+                if t is type(None):
+                    continue
+                if t in [UnsetOrNone, UnsetType]:
+                    continue
+                non_none.append(t)
             if len(non_none) == 1:
                 return cast_str_to_type(raw, non_none[0])
+
+    if isinstance(raw, UnsetType):
+        return raw
 
     # primitives
     if typ is str:
@@ -65,32 +74,38 @@ def cast_str_to_type(raw: str, typ: Any) -> Any:
 
     return raw
 
+class UnsetType: pass
+
+UNSET = UnsetType()
+
+UnsetOrNone: TypeAlias = UnsetType | None
+
 @dataclass
 class InterfaceContext:
-    uri: Optional[str] = None
-    scheme: Optional[str] = None
-    netloc: Optional[str] = None
-    path: Optional[str] = None
-    host: Optional[str] = None
-    port: Optional[int] = None
-    username: Optional[str] = None
-    password: Optional[str] = None
-    params: Optional[str] = None
+    uri: str|UnsetOrNone = UNSET
+    scheme: str|UnsetOrNone = UNSET
+    netloc: str|UnsetOrNone = UNSET
+    path: str|UnsetOrNone = UNSET
+    host: str|UnsetOrNone = UNSET
+    port: int|UnsetOrNone = UNSET
+    username: str|UnsetOrNone = UNSET
+    password: str|UnsetOrNone = UNSET
+    params: str|UnsetOrNone = UNSET
     query: dict[str, list[str]] = field(default_factory=dict)
 
-    rows: int|None = None
-    cols: int|None = None
-    title: str|None = None
+    rows: int|UnsetOrNone = UNSET
+    cols: int|UnsetOrNone = UNSET
+    title: str|UnsetOrNone = UNSET
 
-    cursor_row: int|None = None
-    cursor_col: int|None = None
+    cursor_row: int|UnsetOrNone = UNSET
+    cursor_col: int|UnsetOrNone = UNSET
 
-    encoding: str|None = None
-    convertEol: bool|None = None
-    auto_shutdown: bool|None = None
+    encoding: str|UnsetOrNone = UNSET
+    convertEol: bool|UnsetOrNone = UNSET
+    auto_shutdown: bool|UnsetOrNone = UNSET
 
-    scrollback_buffer_uri: Optional[str] = None
-    scrollback_buffer_size: int|None = None
+    scrollback_buffer_uri: str|UnsetOrNone = UNSET
+    scrollback_buffer_size: int|UnsetOrNone = UNSET
 
     extra_params: dict[str, Any] = field(default_factory=dict) 
 
@@ -140,6 +155,10 @@ class InterfaceContext:
         if kwargs:
             context.update(kwargs)
 
+        for f in fields(context.__class__):
+            if getattr(context, f.name) is UNSET:
+                setattr(context, f.name, None)
+
         return context
 
     def asdict(self):
@@ -162,6 +181,8 @@ class InterfaceContext:
                 continue
             raw_value = attribs_as_dict[f.name]
             if raw_value is None:
+                continue
+            if isinstance(raw_value, UnsetType):
                 continue
             massaged_value = cast_str_to_type(raw_value, f.type)
             setattr(self, f.name, massaged_value)

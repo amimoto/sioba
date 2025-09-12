@@ -87,13 +87,13 @@ class SocketInterface(Interface):
 from ssl import SSLContext, create_default_context, SSLError
 
 @dataclass
-class SecureSocketConfig(InterfaceContext):
+class SecureSocketContext(InterfaceContext):
     """Configuration for secure socket connections"""
     create_ssl_context: Optional[
-                                Callable[["SecureSocketConfig"], SSLContext]
+                                Callable[["SecureSocketContext"], SSLContext]
                             ]= None
 
-@register_scheme("ssl", context_class=SecureSocketConfig)
+@register_scheme("ssl", context_class=SecureSocketContext)
 class SecureSocketInterface(SocketInterface):
 
     async def start_interface(self) -> bool:
@@ -101,7 +101,7 @@ class SecureSocketInterface(SocketInterface):
         # Set the state to STARTED immediately so start() won't wait infinitely
         self.state = InterfaceState.STARTED
 
-        context: SecureSocketConfig = self.context # type: ignore
+        context: SecureSocketContext = self.context # type: ignore
 
         # Start a socket connection
         try:

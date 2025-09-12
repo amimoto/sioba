@@ -2,7 +2,7 @@
 
 A small Python library that unifies interactive IO (functions, TCP/SSL sockets) behind a single async `Interface` API with pluggable scrollback buffers (terminal emulator or simple line buffer).
 
-<img src="sioba-image.png" width="300" />
+<img src="https://raw.githubusercontent.com/amimoto/sioba/refs/heads/main/sioba/sioba-image.png" width="300" />
 
 ---
 

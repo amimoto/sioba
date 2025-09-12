@@ -83,7 +83,7 @@ def interface_from_uri(
     parsed = urlparse(uri)
     scheme = parsed.scheme.lower()
 
-    # If we don't already have a type, let's have a look at the
+    # If we don't already have a type, let's have a looki at the
     # entry points to see if we can find a handler for this scheme.
     if scheme not in INTERFACE_REGISTRY:
         eps = entry_points().select(group="sioba.interface")
