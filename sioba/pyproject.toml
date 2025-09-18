@@ -1,13 +1,12 @@
 [project]
 name = "sioba"
-version = "0.5.2050911"
+version = "0.6.2050918"
 description = "Sioba IO Abstraction Layer"
 requires-python = ">=3.10"
 dependencies = [
     "loguru>=0.7.2",
     "rich>=14.0.0",
     "pyte>=0.8.2",
-    "loguru>=0.7.2",
     "janus>=2.0.0",
 ]
 license = { file = "LICENSE" }

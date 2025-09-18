@@ -51,7 +51,6 @@ def buffer_from_uri(uri: str, **kwargs):
         eps = entry_points().select(group="sioba.buffer")
         for ep in eps:
             if ep.name.lower() == scheme:
-                loaded = ep.load()
                 break
         else:
             # If we didn't find a handler, let's try to discover them.

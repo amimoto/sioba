@@ -5,6 +5,7 @@ from sioba import (
     Interface,
     InterfaceState,
     InterfaceContext,
+    DefaultValuesContext,
 )
 from sioba.interface.function import get_next_line, CaptureMode
 from sioba.errors import InterfaceShutdown, InterfaceNotStarted
@@ -69,7 +70,7 @@ class TestInterfaces(IsolatedAsyncioTestCase):
             raise Exception("Random Error")
 
         buffer_uri = "line://"
-        context = InterfaceContext(
+        context = DefaultValuesContext(
             encoding="utf-8",
             convertEol=True,
             auto_shutdown=True,

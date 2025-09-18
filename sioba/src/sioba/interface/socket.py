@@ -1,11 +1,15 @@
 import asyncio
-from typing import Optional, TypedDict, Callable
+from typing import Optional, Callable
 from .base import Interface, InterfaceState, InterfaceContext, register_scheme
 from loguru import logger
 from dataclasses import dataclass
 
 @register_scheme("tcp")
 class SocketInterface(Interface):
+
+    default_context: InterfaceContext = InterfaceContext(
+        convertEol=False,
+    )
 
     reader: Optional[asyncio.StreamReader] = None
     writer: Optional[asyncio.StreamWriter] = None
@@ -43,7 +47,8 @@ class SocketInterface(Interface):
                     return
 
                 if not ( data := await reader.read(4096) ):
-                    break
+                    await self.shutdown()
+                    return
 
                 # Process received data
                 await self.send_to_frontend(data)
@@ -55,20 +60,14 @@ class SocketInterface(Interface):
 
             except Exception as e:
                 logger.error(f"Error in receive loop: {e=} {type(e)}")
+                await self.shutdown()
                 return
 
     @logger.catch
     async def receive_from_frontend_handle(self, data: bytes):
         """Add data to the send queue"""
-        if not self.writer:
-            return
-
-        # Send to the socket
-        data = data.replace(b"\r", b"\r\n")
-        self.writer.write(data)
-
-        # Local echo the input
-        await self.send_to_frontend(data)
+        if self.writer:
+            self.writer.write(data)
 
     async def shutdown_handle(self):
         """Shutdown the interface"""
@@ -90,7 +89,7 @@ from ssl import SSLContext, create_default_context, SSLError
 class SecureSocketContext(InterfaceContext):
     """Configuration for secure socket connections"""
     create_ssl_context: Optional[
-                                Callable[["SecureSocketContext"], SSLContext]
+                                Callable[["SecureSocketInterface"], SSLContext]
                             ]= None
 
 @register_scheme("ssl", context_class=SecureSocketContext)
@@ -105,10 +104,10 @@ class SecureSocketInterface(SocketInterface):
 
         # Start a socket connection
         try:
-          if context.create_ssl_context:
-              ssl_ctx = context.create_ssl_context(self) # type: ignore
-          else:
-              ssl_ctx = create_default_context()
+            if context.create_ssl_context:
+                ssl_ctx = context.create_ssl_context(self) # type: ignore
+            else:
+                ssl_ctx = create_default_context()
         except AttributeError:
             ssl_ctx = create_default_context()
 

@@ -19,8 +19,6 @@ A small Python library that unifies interactive IO (functions, TCP/SSL sockets) 
 
 ## Installation
 
-**From source (recommended until published):**
-
 ```bash
 pip install sioba
 ```
@@ -55,7 +53,7 @@ async def main():
         captured.append(data)
     echo.on_send_to_frontend(on_send_to_frontend)
 
-    # Manually injec tdata into the interface instance
+    # Manually inject data into the interface instance
     await echo.receive_from_frontend(b"Hello, World!")
 
     # We should have received the data in our callback

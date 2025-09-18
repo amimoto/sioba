@@ -1,5 +1,5 @@
 from unittest import IsolatedAsyncioTestCase
-from sioba import InterfaceContext, Interface
+from sioba import InterfaceContext, Interface, DefaultValuesContext
 from sioba.interface.base import InterfaceState
 import asyncio
 import rich.console
@@ -10,7 +10,7 @@ class TestInterfaceBase(IsolatedAsyncioTestCase):
 
     async def test_interface(self):
         # Test if we can create an InterfaceContext without errors
-        context = InterfaceContext(
+        context = DefaultValuesContext(
             encoding="utf-8",
             convertEol=True,
             auto_shutdown=True,
@@ -145,7 +145,7 @@ class TestInterfaceBase(IsolatedAsyncioTestCase):
 
     async def test_shutdown_interface(self):
         # Test if we can create an InterfaceContext without errors
-        config = InterfaceContext(
+        config = DefaultValuesContext(
             encoding="utf-8",
             convertEol=True,
             auto_shutdown=True,
@@ -187,7 +187,7 @@ class TestInterfaceBase(IsolatedAsyncioTestCase):
 
     async def test_interface_filehandle(self):
         """ Test the filehandle method of the interface """
-        context = InterfaceContext(
+        context = DefaultValuesContext(
             encoding="utf-8",
             convertEol=True,
             auto_shutdown=True,

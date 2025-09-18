@@ -25,6 +25,7 @@ from ..errors import (
 )
 from ..context import (
     InterfaceContext,
+    DefaultValuesContext,
 )
 from ..buffer.base import (
     Buffer,
@@ -89,7 +90,6 @@ def interface_from_uri(
         eps = entry_points().select(group="sioba.interface")
         for ep in eps:
             if ep.name.lower() == scheme:
-                loaded = ep.load()
                 break
         else:
             # If we didn't find a handler, let's try to discover them.
@@ -109,7 +109,12 @@ def interface_from_uri(
 
     if not context:
         context_class = handler.context_class or InterfaceContext
-        context = context_class.from_uri(uri, **kwargs)
+        default_context = handler.default_context
+        context = context_class.from_uri(
+                                    uri,
+                                    default_context=default_context,
+                                    **kwargs
+                                )
 
     return handler(
         context=context,
@@ -144,8 +149,8 @@ SyncReceiveFromFrontendCallbackType = Callable[["Interface", bytes], None]
 AsyncReceiveFromFrontendCallbackType = Callable[["Interface", bytes], Awaitable[None]]
 SyncOnSetTitleCallbackType = Callable[["Interface", str], None]
 AsyncOnSetTitleCallbackType = Callable[["Interface", str], Awaitable[None]]
-SyncOnShutdownCallbackType = Callable[["Interface", str], None]
-AsyncOnShutdownCallbackType = Callable[["Interface", str], Awaitable[None]]
+SyncOnShutdownCallbackType = Callable[["Interface"], None]
+AsyncOnShutdownCallbackType = Callable[["Interface"], Awaitable[None]]
 
 SendToFrontendCallbackType = Union[
     SyncSendToFrontendCallbackType
@@ -192,7 +197,7 @@ class Interface:
     # protocol level. These values can be overwritten on a case by case basis as needed
     # via the context argument. We don't use context so that it becomes available
     # for the protocol level context
-    default_context: Optional[InterfaceContext] = None
+    default_context: InterfaceContext = DefaultValuesContext()
     context: InterfaceContext
     context_class: Optional[type[InterfaceContext]] = None
 
@@ -241,7 +246,8 @@ class Interface:
             self.context = InterfaceContext.with_defaults(context)
 
         if self.default_context:
-            self.context.update(self.default_context)
+            self.context.fill_missing(self.default_context)
+
         if context:
             self.context.update(context)
 
@@ -262,7 +268,7 @@ class Interface:
         # Handle the buffer if we want one
         if self.context.scrollback_buffer_uri:
             self.buffer = buffer_from_uri(
-                self.context.scrollback_buffer_uri,
+                str(self.context.scrollback_buffer_uri),
                 interface=self,
                 on_set_terminal_title=self.set_terminal_title,
             )
@@ -291,10 +297,14 @@ class Interface:
         # interface, this would start the socket connection.
         if self.state != InterfaceState.INITIALIZED:
             return self
-
-        self.state = InterfaceState.STARTED
-        await self.start_interface()
-
+        try:
+            ok = await self.start_interface()
+            if ok is False:
+                raise RuntimeError("start_interface returned False")
+            self.state = InterfaceState.STARTED
+        except Exception:
+            self.state = InterfaceState.SHUTDOWN
+            raise
         return self
 
     async def start_interface(self) -> bool:
@@ -353,7 +363,11 @@ class Interface:
             return
 
         if self.context.convertEol:
-            data = data.replace(b"\n", b"\r\n")
+            tmp = data.replace(b"\n", b"\r\n")
+            logger.debug(f"send_to_frontend: `{data}` [convertEol]=> `{tmp}`")
+            data = tmp
+        else:
+            logger.debug(f"send_to_frontend: `{data}`")
 
         # Process the data through a subclassable function
         await self.send_to_frontend_handle(data)
@@ -378,13 +392,22 @@ class Interface:
     async def receive_from_frontend(self, data: bytes) -> None:
         """Receives data from the xterm as a sequence of bytes.
         """
+
         if self.context.convertEol:
             # We convert all \r\n and just \r to \n since we want to
             # handle newlines in a consistent manner as \n
-            data = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+            tmp = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+            logger.debug(f"receive_from_frontend: `{data}` [convertEol]=> `{tmp}`")
+            data = tmp
+        else:
+            logger.debug(f"recieve_from_frontend: `{data}`")
 
         # Process the data through a subclassable function
         await self.receive_from_frontend_handle(data)
+
+        if self.context.local_echo:
+            # Local echo the input
+            await self.send_to_frontend(data)
 
         # Dispatch to all listeners
         for on_receive in self._on_receive_from_frontend_callbacks:
@@ -427,7 +450,13 @@ class Interface:
         for on_set_terminal_title in self._on_set_terminal_title_callbacks:
             res = on_set_terminal_title(self, title)
             if asyncio.iscoroutine(res):
-                asyncio.run(res)
+                try:
+                    asyncio.get_running_loop()
+                # If no running loop, we create one to run the coroutine
+                except RuntimeError:
+                    asyncio.run(res)
+                else:
+                    asyncio.create_task(res)
 
     def set_terminal_title_handle(self, title: str) -> None:
         """Callback when the window title is set."""

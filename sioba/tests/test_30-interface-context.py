@@ -1,6 +1,6 @@
 from unittest import TestCase
 from dataclasses import dataclass
-from sioba import InterfaceContext
+from sioba import InterfaceContext, DefaultValuesContext
 from utils.server import SingleRequestServer
 
 class TestingContext(TestCase):
@@ -12,7 +12,7 @@ class TestingContext(TestCase):
         server.start()
 
         # Test if we can import InterfaceContext without errors
-        context = InterfaceContext.with_defaults(
+        context = DefaultValuesContext.with_defaults(
             uri=f"tcp://localhost1:{server.port}",
             encoding="utf-8",
             convertEol=True,
@@ -31,7 +31,7 @@ class TestingContext(TestCase):
         self.assertEqual(context.cols, 80)
 
         # Test the parse_uri function
-        parsed = InterfaceContext.from_uri(f"tcp://localhost2:{server.port}?rows=52&cols=100")
+        parsed = DefaultValuesContext.from_uri(f"tcp://localhost2:{server.port}?rows=52&cols=100")
         self.assertIsInstance(parsed, InterfaceContext)
         self.assertEqual(parsed.scheme, "tcp")
         self.assertEqual(parsed.netloc, f"localhost2:{server.port}")
@@ -43,7 +43,7 @@ class TestingContext(TestCase):
         self.assertEqual(parsed.auto_shutdown, True)
 
         # Override some parameters
-        parsed = InterfaceContext.from_uri(
+        parsed = DefaultValuesContext.from_uri(
             f"tcp://localhost3:{server.port}?rows=52&cols=100",
             encoding="ascii",
             auto_shutdown=False,
@@ -56,7 +56,7 @@ class TestingContext(TestCase):
         self.assertEqual(parsed.query, {"rows": ["52"], "cols": ["100"]})
 
         # Let's add some extra parameters
-        parsed = InterfaceContext.from_uri(
+        parsed = DefaultValuesContext.from_uri(
             f"tcp://localhost4:{server.port}?rows=52&cols=100",
             extra_params={
                 "custom_param": "custom_value",
@@ -66,7 +66,7 @@ class TestingContext(TestCase):
 
         # Create a new context
         @dataclass
-        class InheritedContext(InterfaceContext):
+        class InheritedContext(DefaultValuesContext):
             # This class inherits from InterfaceContext to test inheritance and additional functionality
             test: str = "default_value"
 
@@ -86,6 +86,7 @@ class TestingContext(TestCase):
                 'encoding': 'utf-8',
                 'extra_params': {},
                 'host': None,
+                'local_echo': False,
                 'netloc': None,
                 'params': None,
                 'password': None,

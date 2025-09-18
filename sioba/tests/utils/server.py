@@ -43,24 +43,27 @@ class SingleRequestServer():
     def _start(self, serversocket):
         self.state = ServerStatus.RUNNING
         serversocket.listen(1)
-        connection, _ = serversocket.accept()
-        self.connection = connection
-        while True:
-            buf = connection.recv(64)
-            if len(buf) <= 0:
-                continue
-            if isinstance(buf, bytes):
-                data = buf.decode('utf-8').strip()
-            connection.sendall(
-                json.dumps({
-                    'status': 'ok',
-                    'data': data
-                }).encode('utf-8')
-            )
-            if buf.strip() == b'quit':
-                connection.close()
-                self.state = ServerStatus.STOPPED
-                break
+        try:
+            connection, _ = serversocket.accept()
+            self.connection = connection
+            while True:
+                buf = connection.recv(64)
+                if len(buf) <= 0:
+                    continue
+                if isinstance(buf, bytes):
+                    data = buf.decode('utf-8').strip()
+                connection.sendall(
+                    json.dumps({
+                        'status': 'ok',
+                        'data': data
+                    }).encode('utf-8')
+                )
+                if buf.strip() == b'quit':
+                    connection.close()
+                    self.state = ServerStatus.STOPPED
+                    break
+        except ssl.SSLEOFError:
+            print("SSL connection closed by client")
 
     def start(self):
         serversocket = self.connect(self.host, self.port)

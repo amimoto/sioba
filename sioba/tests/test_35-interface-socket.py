@@ -30,7 +30,7 @@ class TestInterfaces(IsolatedAsyncioTestCase):
         self.servers.append(server)
 
         # Now connect to the test server
-        uri = f"tcp://localhost:{server.port}"
+        uri = f"tcp://localhost:{server.port}?convertEol=1"
         sock = await interface_from_uri(uri).start()
         self.assertIsInstance(sock, SocketInterface)
 
@@ -49,7 +49,7 @@ class TestInterfaces(IsolatedAsyncioTestCase):
         await asyncio.sleep(0.1)
 
         # Check if we received a response
-        response = json.loads(send_data[1])
+        response = json.loads(send_data[0])
         self.assertEqual(response['data'], "HELLO")
 
         # Request the server to stop
@@ -58,7 +58,33 @@ class TestInterfaces(IsolatedAsyncioTestCase):
         await sock.shutdown()
         server.shutdown()
 
+    async def test_ssl_socket_interface_fail(self):
+        """ Just check that an invalid cert fails to connect """
+        # Start the test server
+        certfile = CERT_DIR / "future/certificate.crt"
+        keyfile = CERT_DIR / "future/private.key"
+        self.assertTrue(certfile.exists())
+        self.assertTrue(keyfile.exists())
+
+        server = create_server(
+            SSLSingleRequestServer,
+            certfile=certfile.resolve(),
+            keyfile=keyfile.resolve(),
+        )
+        self.servers.append(server)
+
+        import ssl
+        with self.assertRaises(ssl.SSLCertVerificationError):
+            await interface_from_uri(
+                                f"ssl://localhost:{server.port}",
+                            ).start()
+            await asyncio.sleep(0.5)
+
+        server.shutdown()
+
     async def test_ssl_socket_interface(self):
+        """ Test connecting to a SSL socket server with certificate verification
+        """
         # Start the test server
         certfile = CERT_DIR / "future/certificate.crt"
         keyfile = CERT_DIR / "future/private.key"
@@ -96,7 +122,7 @@ class TestInterfaces(IsolatedAsyncioTestCase):
         await asyncio.sleep(0.1)
 
         # Check if we received a response
-        response = json.loads(send_data[1])
+        response = json.loads(send_data[0])
         self.assertEqual(response['data'], "HELLO")
 
         # Request the server to stop
@@ -104,6 +130,5 @@ class TestInterfaces(IsolatedAsyncioTestCase):
 
         await sslsock.shutdown()
         server.shutdown()
-
 
 
