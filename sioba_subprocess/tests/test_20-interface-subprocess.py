@@ -73,6 +73,7 @@ class TestImportSubprocess(IsolatedAsyncioTestCase):
         # a quick computation to ensure that we aren't just checking the for the
         # input
         await exec_interface.receive_from_frontend(b"import hashlib\n")
+        await asyncio.sleep(0.5)
         await exec_interface.receive_from_frontend(b'hashlib.md5(b"hello world").hexdigest()\n')
         await asyncio.sleep(0.5)
 

@@ -1,6 +1,6 @@
 from typing import Callable, Optional
 
-from sioba import register_scheme, InterfaceContext
+from sioba import register_scheme, InterfaceContext, DefaultValuesContext
 
 from loguru import logger
 
@@ -17,7 +17,7 @@ except ImportError as e:
         raise ImportError("No suitable subprocess interface found")
 
 @dataclass
-class ShellContext(InterfaceContext):
+class ShellContext(DefaultValuesContext):
     invoke_args: list[str] = field(default_factory=list)
     invoke_cwd: Optional[str] = None
 
@@ -36,9 +36,6 @@ class ShellInterface(SubprocessInterface):
                 on_send_to_frontend: Optional[Callable] = None,
                 on_shutdown: Optional[Callable] = None,
                 on_set_terminal_title: Optional[Callable] = None,
-                cols: int = 80,
-                rows: int = 24,
-                auto_shutdown: bool = True,
                 context: Optional[ShellContext] = None,
             ):
 
@@ -71,9 +68,6 @@ class ShellInterface(SubprocessInterface):
                 on_send_to_frontend = on_send_to_frontend,
                 on_shutdown = on_shutdown,
                 on_set_terminal_title = on_set_terminal_title,
-                cols = cols,
-                rows = rows,
-                auto_shutdown = auto_shutdown,
         )
 
         if not self.context:
