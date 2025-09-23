@@ -1,6 +1,11 @@
 from unittest import TestCase
 from dataclasses import dataclass
-from sioba import InterfaceContext, DefaultValuesContext
+from sioba import (
+    InterfaceContext,
+    DefaultValuesContext,
+    UnsetOrNone,
+    UNSET,
+)
 from utils.server import SingleRequestServer
 
 class TestingContext(TestCase):
@@ -37,7 +42,7 @@ class TestingContext(TestCase):
         self.assertEqual(parsed.netloc, f"localhost2:{server.port}")
         self.assertEqual(parsed.rows, 52)
         self.assertEqual(parsed.cols, 100)
-        self.assertEqual(parsed.query, {"rows": ["52"], "cols": ["100"]})
+        self.assertEqual(parsed.query, {"rows": "52", "cols": "100"})
         self.assertEqual(parsed.encoding, "utf-8")
         self.assertEqual(parsed.convertEol, True)
         self.assertEqual(parsed.auto_shutdown, True)
@@ -53,7 +58,7 @@ class TestingContext(TestCase):
         self.assertFalse(parsed.auto_shutdown)
         self.assertEqual(parsed.rows, 52)
         self.assertEqual(parsed.cols, 100)
-        self.assertEqual(parsed.query, {"rows": ["52"], "cols": ["100"]})
+        self.assertEqual(parsed.query, {"rows": "52", "cols": "100"})
 
         # Let's add some extra parameters
         parsed = DefaultValuesContext.from_uri(
@@ -122,6 +127,35 @@ class TestingContext(TestCase):
         self.assertIsInstance(context, InterfaceContext)
 
         self.assertEqual(context.get("banana"), "yellow")
+
+    def test_context_conversion(self):
+        """ Check that we can convert types correctly """
+
+        @dataclass
+        class ExampleConversionContext(DefaultValuesContext):
+            integer: int|UnsetOrNone = UNSET
+            boolean: bool|UnsetOrNone = UNSET
+            string: str|UnsetOrNone = UNSET
+            floatnum: float|UnsetOrNone = UNSET
+
+            str_list: list[str]|UnsetOrNone = UNSET
+
+        # Create a context from URI
+        context = ExampleConversionContext.from_uri(
+            "test://localhost/?integer=42&boolean=1&string=hello&floatnum=3.14&str_list=item1&str_list=item2"
+        )
+
+        self.assertIsInstance(context, ExampleConversionContext)
+        self.assertEqual(context.integer, 42)
+        self.assertIsInstance(context.integer, int)
+        self.assertTrue(context.boolean)
+        self.assertIsInstance(context.boolean, bool)
+        self.assertEqual(context.string, "hello")
+        self.assertIsInstance(context.string, str)
+        self.assertIsInstance(context.floatnum, float)
+
+        self.assertIsInstance(context.str_list, list)
+        self.assertEqual(context.str_list, ["item1", "item2"])
 
 
 

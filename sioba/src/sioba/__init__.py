@@ -29,7 +29,6 @@ from .interface.socket import (
     SecureSocketInterface as SecureSocketInterface,
 )
 
-
 __all__: list[str] = [
     "Interface",
     "InterfaceContext",

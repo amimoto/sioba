@@ -13,6 +13,9 @@ from dataclasses import (
     asdict,
 )
 from urllib.parse import urlparse, parse_qs
+from collections.abc import (
+    Sequence,
+)
 
 DEFAULT_ROWS = 24
 DEFAULT_COLS = 80
@@ -26,7 +29,8 @@ UnsetOrNone: TypeAlias = UnsetType | None
 
 UNSET = UnsetType()
 
-def cast_str_to_type(raw: Any, typ: Any) -> Any:
+def get_next_type(typ: Any) -> Any:
+    """ Get the base type from a possibly wrapped type hint. """
     origin = get_origin(typ)
     args   = get_args(typ)
 
@@ -41,29 +45,73 @@ def cast_str_to_type(raw: Any, typ: Any) -> Any:
                     continue
                 non_none.append(t)
             if len(non_none) == 1:
-                return cast_str_to_type(raw, non_none[0])
+                return get_next_type(non_none[0])
 
-    if isinstance(raw, UnsetType):
-        return raw
+    # Handle the case that the type is a list
+    if origin in [list, Sequence]:
+        return origin
+
+    return typ
+
+def cast_str_to_type(data: Any, typ: Any) -> Any:
+    """ Cast query parameter values to the appropriate type based on the provided type hint. """
+    origin = get_origin(typ)
+    args   = get_args(typ)
+
+    # Optional[T] → just T
+    if origin in [Union, types.UnionType]:
+        if type(None) in args:
+            non_none = []
+            for t in args:
+                if t is type(None):
+                    continue
+                if t in [UnsetOrNone, UnsetType]:
+                    continue
+                non_none.append(t)
+            if len(non_none) == 1:
+                return cast_str_to_type(
+                            data=data,
+                            typ=non_none[0],
+                        )
+
+    # Handle the case that the type is a list
+    if origin in [list, Sequence]:
+        if not data:
+            return []
+
+        list_data = []
+        for entry_data in data:
+            list_data.append(
+                cast_str_to_type(
+                    data=entry_data,
+                    typ=origin,
+                )
+            )
+
+        return list_data
+
+    if isinstance(data, UnsetType):
+        return UNSET
+
+    if data is None:
+        return
 
     # primitives
     if typ is str:
-        return raw
+        return data
 
     if typ is int:
-        if raw is None:
-            return
-        return int(raw)
+        return int(data)
 
     if typ is float:
-        return float(raw)
+        return float(data)
 
     if typ is bool:
-        if isinstance(raw, str):
-            return raw.lower() in ("1","true","yes")
-        return bool(raw)
+        if isinstance(data, str):
+            return data.lower() in ("1","true","yes")
+        return bool(data)
 
-    return raw
+    return data
 
 @dataclass
 class InterfaceContext:
@@ -102,9 +150,9 @@ class InterfaceContext:
         """
         parsed = urlparse(uri)
         if parsed.query:
-            query_params = parse_qs(parsed.query)
+            query_params: dict[str, Any] = parse_qs(parsed.query)
         else:
-            query_params = {}
+            query_params: dict[str, Any] = {}
 
         kwargs = {
             "uri": uri,
@@ -118,11 +166,36 @@ class InterfaceContext:
             "query": query_params,
         }
 
+        # Due to how query_params works, it's not straightforward to
+        # extract single values vs lists directly from the qs. So we
+        # will use the type hints to normalize the values
         for f in fields(cls):
             if f.name not in query_params:
                 continue
-            raw_value = query_params[f.name][0]
-            kwargs[f.name] = cast_str_to_type(raw_value, f.type)
+
+            base_type = get_next_type(f.type)
+
+            if base_type in [dict]:
+                # We don't handle dicts from query params
+                continue
+
+            elif base_type in [list, Sequence]:
+                pass
+
+            else:
+                # Primitive type, make sure we only have one value
+                if len(query_params[f.name]) > 1:
+                    raise ValueError(f"Multiple values for a non-list type {query_params[f.name]}")
+                query_params[f.name] = query_params[f.name][0]
+
+        for f in fields(cls):
+            if f.name not in query_params:
+                continue
+            raw_value = query_params[f.name]
+            kwargs[f.name] = cast_str_to_type(
+                data = raw_value,
+                typ = f.type,
+            )
 
         kwargs.update(extra)
 
@@ -191,21 +264,6 @@ class InterfaceContext:
             if f.name not in attribs_as_dict:
                 continue
 
-            """
-            current_value = getattr(self, f.name)
-
-            if not isinstance(current_value, UnsetType) and current_value is not None:
-                continue
-
-            raw_value = attribs_as_dict[f.name]
-
-            if isinstance(raw_value, UnsetType):
-                continue
-
-            massaged_value = cast_str_to_type(raw_value, f.type)
-            setattr(self, f.name, massaged_value)
-            """
-
         return self
 
     def get(self, key: str, default: Any = None) -> Any:
@@ -224,21 +282,21 @@ class InterfaceContext:
 
 @dataclass
 class DefaultValuesContext(InterfaceContext):
-    rows:int = DEFAULT_ROWS
-    cols:int = DEFAULT_COLS
-    title:str = ""
+    rows: int|UnsetOrNone = DEFAULT_ROWS
+    cols: int|UnsetOrNone = DEFAULT_COLS
+    title: str|UnsetOrNone = ""
 
-    cursor_col:int = 0
-    cursor_row:int =  0
+    cursor_col: int|UnsetOrNone = 0
+    cursor_row: int|UnsetOrNone =  0
 
-    scrollback_buffer_uri:str = DEFAULT_SCROLLBACK_URI
-    scrollback_buffer_size:int = DEFAULT_SCROLLBACK_BUFFER_SIZE
+    scrollback_buffer_uri: str|UnsetOrNone = DEFAULT_SCROLLBACK_URI
+    scrollback_buffer_size: int|UnsetOrNone = DEFAULT_SCROLLBACK_BUFFER_SIZE
 
-    encoding:str = "utf-8"
-    local_echo:bool = False
+    encoding: str|UnsetOrNone = "utf-8"
+    local_echo: bool|UnsetOrNone = False
 
-    convertEol:bool = True
-    auto_shutdown:bool = DEFAULT_AUTO_SHUTDOWN
+    convertEol: bool|UnsetOrNone = True
+    auto_shutdown: bool|UnsetOrNone = DEFAULT_AUTO_SHUTDOWN
 
 
 
