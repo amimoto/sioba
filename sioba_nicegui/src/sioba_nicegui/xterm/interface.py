@@ -161,8 +161,11 @@ class XTermInterface(XTerm):
         async def handle_client_connect(client: Client) -> None:
             """Handle client connections."""
             logger.info(f"Client connected: {client.id}")
+            if self.interface:
+                await self.interface.start()
+            else:
+                raise RuntimeError("No interface connected to terminal")
             self.state = TerminalState.CONNECTED
-            await self.interface.start()
             self.sync_with_frontend()
             self.sync_context()
 
