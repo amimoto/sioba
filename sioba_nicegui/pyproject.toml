@@ -14,10 +14,13 @@ classifiers = [
 ]
 readme = { file = "README.md", content-type = "text/markdown" }
 
-
 [build-system]
 requires = ["uv_build>=0.8.5,<1"]
 build-backend = "uv_build"
+
+[project.urls]
+Homepage = "https://github.com/amimoto/sioba"
+Issues = "https://github.com/amimoto/sioba/issues"
 
 [dependency-groups]
 dev = [
