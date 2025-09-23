@@ -1295,7 +1295,7 @@ wheels = [
 
 [[package]]
 name = "sioba"
-version = "0.4.2050906.4"
+version = "0.6.2050918"
 source = { editable = "sioba" }
 dependencies = [
     { name = "janus" },
