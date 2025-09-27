@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .context import (
     InterfaceContext as InterfaceContext,
-    UNSET as UNSET,
+    Unset as Unset,
     UnsetType as UnsetType,
     UnsetOrNone as UnsetOrNone,
     DefaultValuesContext as DefaultValuesContext,

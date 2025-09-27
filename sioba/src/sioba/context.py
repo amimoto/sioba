@@ -23,11 +23,27 @@ DEFAULT_AUTO_SHUTDOWN = True
 DEFAULT_SCROLLBACK_URI = "terminal://"
 DEFAULT_SCROLLBACK_BUFFER_SIZE = 10_000
 
-class UnsetType: pass
+class UnsetType:
+    _singleton:"UnsetType" = None
+
+    def __new__(cls, *args, **kwargs):
+        """ Force Singleton of UnsetType """
+        if cls._singleton is None:
+            cls._singleton = super().__new__(cls)
+        return cls._singleton
+
+    def __bool__(self):
+        return False  # Make instances of MyNullObject falsy
+
+    def __eq__(self, other):
+        return isinstance(other, UnsetType)
+
+    def __ne__(self, other):
+        return not isinstance(other, UnsetType)
 
 UnsetOrNone: TypeAlias = UnsetType | None
 
-UNSET = UnsetType()
+Unset = UnsetType()
 
 def get_next_type(typ: Any) -> Any:
     """ Get the base type from a possibly wrapped type hint. """
@@ -91,7 +107,7 @@ def cast_str_to_type(data: Any, typ: Any) -> Any:
         return list_data
 
     if isinstance(data, UnsetType):
-        return UNSET
+        return Unset
 
     if data is None:
         return
@@ -115,31 +131,31 @@ def cast_str_to_type(data: Any, typ: Any) -> Any:
 
 @dataclass
 class InterfaceContext:
-    uri: str|UnsetOrNone = UNSET
-    scheme: str|UnsetOrNone = UNSET
-    netloc: str|UnsetOrNone = UNSET
-    path: str|UnsetOrNone = UNSET
-    host: str|UnsetOrNone = UNSET
-    port: int|UnsetOrNone = UNSET
-    username: str|UnsetOrNone = UNSET
-    password: str|UnsetOrNone = UNSET
-    params: str|UnsetOrNone = UNSET
+    uri: str|UnsetOrNone = Unset
+    scheme: str|UnsetOrNone = Unset
+    netloc: str|UnsetOrNone = Unset
+    path: str|UnsetOrNone = Unset
+    host: str|UnsetOrNone = Unset
+    port: int|UnsetOrNone = Unset
+    username: str|UnsetOrNone = Unset
+    password: str|UnsetOrNone = Unset
+    params: str|UnsetOrNone = Unset
     query: dict[str, list[str]] = field(default_factory=dict)
 
-    rows: int|UnsetOrNone = UNSET
-    cols: int|UnsetOrNone = UNSET
-    title: str|UnsetOrNone = UNSET
+    rows: int|UnsetOrNone = Unset
+    cols: int|UnsetOrNone = Unset
+    title: str|UnsetOrNone = Unset
 
-    cursor_row: int|UnsetOrNone = UNSET
-    cursor_col: int|UnsetOrNone = UNSET
+    cursor_row: int|UnsetOrNone = Unset
+    cursor_col: int|UnsetOrNone = Unset
 
-    encoding: str|UnsetOrNone = UNSET
-    convertEol: bool|UnsetOrNone = UNSET
-    auto_shutdown: bool|UnsetOrNone = UNSET
-    local_echo: bool|UnsetOrNone = UNSET
+    encoding: str|UnsetOrNone = Unset
+    convertEol: bool|UnsetOrNone = Unset
+    auto_shutdown: bool|UnsetOrNone = Unset
+    local_echo: bool|UnsetOrNone = Unset
 
-    scrollback_buffer_uri: str|UnsetOrNone = UNSET
-    scrollback_buffer_size: int|UnsetOrNone = UNSET
+    scrollback_buffer_uri: str|UnsetOrNone = Unset
+    scrollback_buffer_size: int|UnsetOrNone = Unset
 
     extra_params: dict[str, Any] = field(default_factory=dict) 
 
@@ -218,9 +234,9 @@ class InterfaceContext:
         if kwargs:
             context.update(kwargs)
 
-        for f in fields(context.__class__):
-            if getattr(context, f.name) is UNSET:
-                setattr(context, f.name, None)
+        #for f in fields(context.__class__):
+        #    if getattr(context, f.name) is Unset:
+        #        setattr(context, f.name, None)
 
         return context
 
@@ -243,7 +259,7 @@ class InterfaceContext:
             if f.name not in attribs_as_dict:
                 continue
             raw_value = attribs_as_dict[f.name]
-            if isinstance(raw_value, UnsetType):
+            if raw_value is Unset:
                 continue
             massaged_value = cast_str_to_type(raw_value, f.type)
             setattr(self, f.name, massaged_value)

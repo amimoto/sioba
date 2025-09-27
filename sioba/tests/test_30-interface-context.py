@@ -4,11 +4,44 @@ from sioba import (
     InterfaceContext,
     DefaultValuesContext,
     UnsetOrNone,
-    UNSET,
+    Unset,
 )
 from utils.server import SingleRequestServer
 
 class TestingContext(TestCase):
+
+    def test_context_unset(self):
+        """ Do multiple tests with Unset singleton """
+        self.assertFalse(Unset)
+
+        context = InterfaceContext()
+        self.assertTrue(context.rows == Unset)
+        self.assertTrue(context.rows is Unset)
+        self.assertFalse(context.rows)
+
+        data = context.asdict()
+        self.assertTrue(data["rows"] == Unset)
+        self.assertTrue(data["rows"] is Unset)
+        self.assertFalse(data["rows"])
+
+    def test_context_with_defaults(self):
+        """ Test that with_defaults class method works correctly
+        """
+        context = InterfaceContext.with_defaults(
+            rows=30,
+            cols=120,
+        )
+        self.assertIsInstance(context, InterfaceContext)
+        self.assertEqual(context.rows, 30)
+        self.assertEqual(context.cols, 120)
+        self.assertIs(context.path, Unset)
+
+    def test_context_unset_and_uri(self):
+        """ Test that with_defaults class method works correctly """
+        context = InterfaceContext.from_uri(
+            uri="test://localhost:1234/?rows=52&cols=100",
+            rows=24,
+        )
 
     def test_context(self):
 
@@ -90,22 +123,22 @@ class TestingContext(TestCase):
                 'convertEol': True,
                 'encoding': 'utf-8',
                 'extra_params': {},
-                'host': None,
+                'host': Unset,
                 'local_echo': False,
-                'netloc': None,
-                'params': None,
-                'password': None,
-                'path': None,
-                'port': None,
+                'netloc': Unset,
+                'params': Unset,
+                'password': Unset,
+                'path': Unset,
+                'port': Unset,
                 'query': {},
                 'rows': 24,
-                'scheme': None,
+                'scheme': Unset,
                 'scrollback_buffer_size': 10000,
                 'scrollback_buffer_uri': "terminal://",
                 'test': 'default_value',
                 'title': 'Test Interface',
                 'uri': f'tcp://localhost5:{server.port}',
-                'username': None
+                'username': Unset
             }
         self.assertEqual( inherited_context.asdict(), VERIFY)
 
@@ -133,12 +166,12 @@ class TestingContext(TestCase):
 
         @dataclass
         class ExampleConversionContext(DefaultValuesContext):
-            integer: int|UnsetOrNone = UNSET
-            boolean: bool|UnsetOrNone = UNSET
-            string: str|UnsetOrNone = UNSET
-            floatnum: float|UnsetOrNone = UNSET
+            integer: int|UnsetOrNone = Unset
+            boolean: bool|UnsetOrNone = Unset
+            string: str|UnsetOrNone = Unset
+            floatnum: float|UnsetOrNone = Unset
 
-            str_list: list[str]|UnsetOrNone = UNSET
+            str_list: list[str]|UnsetOrNone = Unset
 
         # Create a context from URI
         context = ExampleConversionContext.from_uri(

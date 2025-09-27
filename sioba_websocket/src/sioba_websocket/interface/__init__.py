@@ -4,7 +4,7 @@ from sioba import (
     InterfaceState,
     InterfaceContext,
     DefaultValuesContext,
-    UNSET,
+    Unset,
     UnsetOrNone,
 )
 import websockets.sync.client
@@ -23,12 +23,12 @@ class WebsocketContext(DefaultValuesContext):
     # test for an exact match or regular expressions compiled by
     # re.compile() to test against a pattern. Include None in the
     # list if the lack of an origin is acceptable
-    origin:str|UnsetOrNone = UNSET
+    origin:str|UnsetOrNone = Unset
 
     # List of supported extensions, in order in which they should be
     # negotiated and run.
-    extensions:Sequence[str]|UnsetOrNone = UNSET
-    subprotocols:Sequence[str]|UnsetOrNone = UNSET
+    extensions:Sequence[str]|UnsetOrNone = Unset
+    subprotocols:Sequence[str]|UnsetOrNone = Unset
 
     # The “permessage-deflate” extension is enabled by default. Set
     # compression to None to disable it.
