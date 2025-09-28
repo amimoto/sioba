@@ -236,10 +236,6 @@ class InterfaceContext:
         if kwargs:
             context.update(kwargs)
 
-        #for f in fields(context.__class__):
-        #    if getattr(context, f.name) is Unset:
-        #        setattr(context, f.name, None)
-
         return context
 
     def asdict(self):
