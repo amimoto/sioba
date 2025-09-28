@@ -5,6 +5,7 @@ from sioba import (
     DefaultValuesContext,
     UnsetOrNone,
     Unset,
+    UnsetFactory,
 )
 from utils.server import SingleRequestServer
 
@@ -166,12 +167,12 @@ class TestingContext(TestCase):
 
         @dataclass
         class ExampleConversionContext(DefaultValuesContext):
-            integer: int|UnsetOrNone = Unset
-            boolean: bool|UnsetOrNone = Unset
-            string: str|UnsetOrNone = Unset
-            floatnum: float|UnsetOrNone = Unset
+            integer: int|UnsetOrNone = UnsetFactory()
+            boolean: bool|UnsetOrNone = UnsetFactory()
+            string: str|UnsetOrNone = UnsetFactory()
+            floatnum: float|UnsetOrNone = UnsetFactory()
 
-            str_list: list[str]|UnsetOrNone = Unset
+            str_list: list[str]|UnsetOrNone = UnsetFactory()
 
         # Create a context from URI
         context = ExampleConversionContext.from_uri(

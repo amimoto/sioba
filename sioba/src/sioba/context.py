@@ -45,6 +45,8 @@ UnsetOrNone: TypeAlias = UnsetType | None
 
 Unset = UnsetType()
 
+UnsetFactory = lambda *a, **kw: field(*a, default_factory=UnsetType, **kw)
+
 def get_next_type(typ: Any) -> Any:
     """ Get the base type from a possibly wrapped type hint. """
     origin = get_origin(typ)
@@ -131,31 +133,31 @@ def cast_str_to_type(data: Any, typ: Any) -> Any:
 
 @dataclass
 class InterfaceContext:
-    uri: str|UnsetOrNone = Unset
-    scheme: str|UnsetOrNone = Unset
-    netloc: str|UnsetOrNone = Unset
-    path: str|UnsetOrNone = Unset
-    host: str|UnsetOrNone = Unset
-    port: int|UnsetOrNone = Unset
-    username: str|UnsetOrNone = Unset
-    password: str|UnsetOrNone = Unset
-    params: str|UnsetOrNone = Unset
+    uri: str|UnsetOrNone = UnsetFactory()
+    scheme: str|UnsetOrNone = UnsetFactory()
+    netloc: str|UnsetOrNone = UnsetFactory()
+    path: str|UnsetOrNone = UnsetFactory()
+    host: str|UnsetOrNone = UnsetFactory()
+    port: int|UnsetOrNone = UnsetFactory()
+    username: str|UnsetOrNone = UnsetFactory()
+    password: str|UnsetOrNone = UnsetFactory()
+    params: str|UnsetOrNone = UnsetFactory()
     query: dict[str, list[str]] = field(default_factory=dict)
 
-    rows: int|UnsetOrNone = Unset
-    cols: int|UnsetOrNone = Unset
-    title: str|UnsetOrNone = Unset
+    rows: int|UnsetOrNone = UnsetFactory()
+    cols: int|UnsetOrNone = UnsetFactory()
+    title: str|UnsetOrNone = UnsetFactory()
 
-    cursor_row: int|UnsetOrNone = Unset
-    cursor_col: int|UnsetOrNone = Unset
+    cursor_row: int|UnsetOrNone = UnsetFactory()
+    cursor_col: int|UnsetOrNone = UnsetFactory()
 
-    encoding: str|UnsetOrNone = Unset
-    convertEol: bool|UnsetOrNone = Unset
-    auto_shutdown: bool|UnsetOrNone = Unset
-    local_echo: bool|UnsetOrNone = Unset
+    encoding: str|UnsetOrNone = UnsetFactory()
+    convertEol: bool|UnsetOrNone = UnsetFactory()
+    auto_shutdown: bool|UnsetOrNone = UnsetFactory()
+    local_echo: bool|UnsetOrNone = UnsetFactory()
 
-    scrollback_buffer_uri: str|UnsetOrNone = Unset
-    scrollback_buffer_size: int|UnsetOrNone = Unset
+    scrollback_buffer_uri: str|UnsetOrNone = UnsetFactory()
+    scrollback_buffer_size: int|UnsetOrNone = UnsetFactory()
 
     extra_params: dict[str, Any] = field(default_factory=dict) 
 
