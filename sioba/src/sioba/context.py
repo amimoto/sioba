@@ -184,6 +184,11 @@ class InterfaceContext:
             "query": query_params,
         }
 
+        # Normalize unset values to Unset
+        for k, v in kwargs.items():
+            if v is None:
+                kwargs[k] = Unset
+
         # Due to how query_params works, it's not straightforward to
         # extract single values vs lists directly from the qs. So we
         # will use the type hints to normalize the values
@@ -238,7 +243,16 @@ class InterfaceContext:
 
         return context
 
-    def asdict(self):
+    def asdict(self, fields:list[str]|None = None):
+        if fields:
+            data = {}
+            for f in fields:
+                if hasattr(self, f):
+                    field_data = getattr(self, f)
+                    if isinstance(field_data, UnsetType):
+                        continue
+                    data[f] = field_data
+            return data
         return asdict(self)
 
     def copy(self) -> "InterfaceContext":
