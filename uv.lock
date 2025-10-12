@@ -7,6 +7,7 @@ members = [
     "sioba",
     "sioba-monorepo",
     "sioba-nicegui",
+    "sioba-serial",
     "sioba-subprocess",
     "sioba-websocket",
 ]
@@ -1107,6 +1108,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyserial"
+version = "3.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/7d/ae3f0a63f41e4d2f6cb66a5b57197850f919f59e558159a4dd3a818f5082/pyserial-3.5.tar.gz", hash = "sha256:3c77e014170dfffbd816e6ffc205e9842efb10be9f58ec16d3e8675b4925cddb", size = 159125, upload-time = "2020-11-23T03:59:15.045Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/07/bc/587a445451b253b285629263eb51c2d8e9bcea4fc97826266d186f96f558/pyserial-3.5-py2.py3-none-any.whl", hash = "sha256:c4451db6ba391ca6ca299fb3ec7bae67a5c55dde170964c7a14ceefec02f2cf0", size = 90585, upload-time = "2020-11-23T03:59:13.41Z" },
+]
+
+[[package]]
 name = "pyte"
 version = "0.8.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1295,7 +1305,7 @@ wheels = [
 
 [[package]]
 name = "sioba"
-version = "0.6.2050918"
+version = "0.6.20251011"
 source = { editable = "sioba" }
 dependencies = [
     { name = "janus" },
@@ -1363,8 +1373,39 @@ dev = [
 ]
 
 [[package]]
+name = "sioba-serial"
+version = "0.1.20251002"
+source = { editable = "sioba_serial" }
+dependencies = [
+    { name = "loguru" },
+    { name = "pyserial" },
+    { name = "sioba" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "loguru", specifier = ">=0.7.2" },
+    { name = "pyserial", specifier = ">=3.5" },
+    { name = "sioba", editable = "sioba" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "pytest-asyncio", specifier = ">=0.25.3" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
+]
+
+[[package]]
 name = "sioba-subprocess"
-version = "0.4.20250925.5"
+version = "0.4.20250928"
 source = { editable = "sioba_subprocess" }
 dependencies = [
     { name = "loguru" },
@@ -1395,7 +1436,7 @@ dev = [
 
 [[package]]
 name = "sioba-websocket"
-version = "0.1.20250907.0"
+version = "0.1.20250928"
 source = { editable = "sioba_websocket" }
 dependencies = [
     { name = "loguru" },

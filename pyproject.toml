@@ -4,7 +4,13 @@ version = "0.0.0"
 requires-python = ">=3.10"
 
 [tool.uv.workspace]
-members = ["sioba", "sioba_nicegui", "sioba_subprocess", "sioba_websocket"]
+members = [
+    "sioba",
+    "sioba_nicegui",
+    "sioba_subprocess",
+    "sioba_websocket",
+    "sioba_serial"
+]
 
 # Make all three discoverable to each other while developing
 [tool.uv.sources]
