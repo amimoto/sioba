@@ -169,7 +169,6 @@ OnShutdownCallbackType = Union[
     | AsyncOnShutdownCallbackType
 ]
 
-
 ###########################################################
 # Basic Interface Class that provides what XTerm expects
 ###########################################################

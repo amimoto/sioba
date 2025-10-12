@@ -28,6 +28,7 @@ from .interface.echo import EchoInterface as EchoInterface
 from .interface.socket import (
     SocketInterface as SocketInterface,
     SecureSocketInterface as SecureSocketInterface,
+    UDPInterface as UDPInterface,
 )
 
 __all__: list[str] = [
@@ -37,6 +38,7 @@ __all__: list[str] = [
     "EchoInterface",
     "SocketInterface",
     "SecureSocketInterface",
+    "UDPInterface",
     "InterfaceState",
 
     "register_scheme",

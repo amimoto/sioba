@@ -104,6 +104,72 @@ class SSLSingleRequestServer(SingleRequestServer):
         sslserversocket = context.wrap_socket(serversocket, server_side=True)
         return sslserversocket
 
+class UDPServer(SingleRequestServer):
+
+    def __init__(
+            self,
+            port: int = 0,
+            host: str = 'localhost',
+        ):
+        self.port: int = port
+        self.host: str = host
+        self.thread: Optional[Thread] = None
+        self.state: ServerStatus = ServerStatus.INITIALIZED
+        self.socket: Optional[socket.socket] = None
+
+    def create_socket(self, host: str, port: int) -> socket.socket:
+        serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        serversocket.bind((host, port))
+        return serversocket
+
+    def connect(self, host: str, port: int) -> socket.socket:
+        serversocket = self.create_socket(host, port)
+        self.port = serversocket.getsockname()[1]
+        return serversocket
+
+    def _start(self, serversocket):
+        self.state = ServerStatus.RUNNING
+        try:
+            while True:
+                buf, addr = serversocket.recvfrom(2048)
+                if len(buf) <= 0:
+                    continue
+                if isinstance(buf, bytes):
+                    data = buf.decode('utf-8').strip()
+                # Check if server socket is still open
+                if serversocket.fileno() == -1:
+                    break
+                serversocket.sendto(
+                    json.dumps({
+                        'status': 'ok',
+                        'data': data
+                    }).encode('utf-8'),
+                    addr
+                )
+                if buf.strip() == b'quit':
+                    self.state = ServerStatus.STOPPED
+                    break
+        except Exception as e:
+            print(f"UDP server error: {e} {type(e)}")
+            raise e
+        print("UDP server stopped")
+
+    def start(self):
+        serversocket = self.connect(self.host, self.port)
+        self.socket = serversocket
+        self.state = ServerStatus.STARTING
+        self.thread = Thread(target=self._start, args=(serversocket,), daemon=True)
+        self.thread.start()
+
+    def shutdown(self):
+        if self.socket:
+            self.socket.close()
+            if self.thread is not None:
+                self.thread.join()
+                self.thread = None
+            self.state = ServerStatus.STOPPED
+
+
 def create_server(cls, **kwargs):
     server = cls(**kwargs)
     server.start()

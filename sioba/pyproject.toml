@@ -1,6 +1,6 @@
 [project]
 name = "sioba"
-version = "0.6.2051002"
+version = "0.6.20251011"
 description = "Sioba IO Abstraction Layer"
 requires-python = ">=3.10"
 dependencies = [
@@ -34,6 +34,7 @@ dev = [
 "sioba.interface".echo = "sioba.interface.echo:EchoInterface"
 "sioba.interface".tcp  = "sioba.interface.socket:SocketInterface"
 "sioba.interface".ssl = "sioba.interface.socket:SecureSocketInterface"
+"sioba.interface".udp = "sioba.interface.socket:UDPInterface"
 "sioba.interface".dummy = "sioba.interface.echo:EchoInterface"
 "sioba.buffer".none = "sioba.buffer.base:Buffer"
 "sioba.buffer".line = "sioba.buffer.line:LineBuffer"

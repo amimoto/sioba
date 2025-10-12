@@ -1,8 +1,10 @@
 import asyncio
 from typing import Optional, Callable
 from .base import Interface, InterfaceState, InterfaceContext, register_scheme
+from .io import IOInterface
 from loguru import logger
 from dataclasses import dataclass
+import socket
 
 @register_scheme("tcp")
 class SocketInterface(Interface):
@@ -131,3 +133,19 @@ class SecureSocketInterface(SocketInterface):
             await super().shutdown_handle()
         except SSLError as e:
             logger.warning(f"SSL error during shutdown: {e}")
+
+@register_scheme("udp")
+class UDPInterface(IOInterface):
+    def filehandle_create(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        return sock
+
+    def filehandle_read(self) -> bytes:
+        resp, _ = self.handle.recvfrom(2048)
+        return resp
+
+    def filehandle_write(self, data: bytes):
+        return self.handle.sendto(data, (
+            self.context.host,
+            self.context.port
+        ))

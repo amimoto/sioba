@@ -627,6 +627,7 @@ class DummyBuffer:
 * `sioba.EchoInterface` — `echo://` passthrough for testing.
 * `sioba.SocketInterface` — `tcp://host:port` using asyncio streams.
 * `sioba.SecureSocketInterface` — `ssl://host:port` with optional `create_ssl_context`.
+* `sioba.UDPInterface` — `udp://host:port` for UDP streams.
 * `sioba.buffer_from_uri(uri, **kw)` / `sioba.register_buffer(*names)` / `sioba.list_buffer_schemes()` — buffer plugins.
 * `sioba.errors` — `InterfaceNotStarted`, `InterfaceShutdown`, `TerminalClosedError`, etc.
 * `sioba.Interface.filehandle()` — TTY-like stream (used by `rich.Console(file=...)`).
@@ -641,7 +642,7 @@ class DummyBuffer:
 
 ## Security & Limits
 
-* `tcp://` and `ssl://` interfaces **open network connections**; user input is echoed locally and forwarded to the remote server.
+* `tcp://`, `udp://`, and `ssl://` interfaces **open network connections**; user input is echoed locally and forwarded to the remote server.
 * `SecureSocketInterface` accepts a custom SSL context; using an “unverified” context (as in tests) **disables certificate verification**—unsafe for production.
 * `FunctionInterface` runs your function in a **separate thread** and can execute arbitrary code; there is no sandboxing.
 
