@@ -3,7 +3,6 @@ from sioba import (
     Interface,
     InterfaceState,
     InterfaceContext,
-    DefaultValuesContext,
     Unset,
     UnsetOrNone,
 )
@@ -16,7 +15,7 @@ from typing import Sequence
 from loguru import logger
 
 @dataclass
-class WebsocketContext(DefaultValuesContext):
+class WebsocketContext(InterfaceContext):
 
     # Acceptable values of the Origin header, for defending against
     # Cross-Site WebSocket Hijacking attacks. Values can be str to
@@ -84,15 +83,22 @@ class WebsocketInterface(Interface):
     handle = None
 
     def filehandle_create(self):
-        websocket = websockets.sync.client.connect(
-                                                uri=self.context.uri,
-                                                extensions=self.context.extensions,
-                                                subprotocols=self.context.subprotocols,
-                                                compression=self.context.compression,
-                                                user_agent_header=self.context.user_agent_header,
-                                                open_timeout=self.context.open_timeout,
-                                                close_timeout=self.context.close_timeout,
-                                            )
+        options = dict(
+            uri=self.context.uri,
+            extensions=self.context.extensions,
+            subprotocols=self.context.subprotocols,
+            compression=self.context.compression,
+            user_agent_header=self.context.user_agent_header,
+            open_timeout=self.context.open_timeout,
+            close_timeout=self.context.close_timeout,
+        )
+        connect_config = {}
+        for k,v in options.items():
+            if v is not Unset:
+                connect_config[k] = v
+
+        print(connect_config)
+        websocket = websockets.sync.client.connect(**connect_config)
         return websocket
 
     def filehandle_read(self) -> bytes:

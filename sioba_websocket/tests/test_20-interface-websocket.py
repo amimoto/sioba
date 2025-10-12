@@ -15,11 +15,9 @@ def setup_websocket_server(host:str = "localhost", port:int=4506):
         for message in websocket:
             json_data = json.dumps({
                 "message": message.decode(),
+                "subprotocol": websocket.subprotocol,
+                "headers": dict(websocket.request.headers),
             })
-            print(f"--------------------------")
-            import pprint
-            pprint.pprint(json_data)
-            print(f"--------------------------")
             websocket.send(json_data)
 
     server = websockets.sync.server.serve(echo, host, port)
@@ -34,7 +32,7 @@ class TestImportWebsocket(IsolatedAsyncioTestCase):
         t = threading.Thread(target=server.serve_forever, daemon=True)
         t.start()
 
-        websocket_uri = "ws://localhost:4506/"
+        websocket_uri = "ws://localhost:4506/?subprotocols=banana&subprotocols=split"
 
         # Construct the websocket URI for the websocket interface
         websocket_interface = interface_from_uri(websocket_uri)
@@ -58,4 +56,5 @@ class TestImportWebsocket(IsolatedAsyncioTestCase):
         self.assertTrue(len(frontend_buffer) > 0)
         data = json.loads(frontend_buffer[0].decode())
         self.assertEqual(data["message"], test_message.decode())
+        self.assertEqual(data["headers"]["sec-websocket-protocol"], "banana, split")
 

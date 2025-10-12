@@ -1,10 +1,10 @@
 [project]
 name = "sioba_websocket"
-version = "0.1.20250907.0"
+version = "0.1.20250928"
 description = "Sioba Websocket IO Interface layer"
 requires-python = ">=3.10"
 dependencies = [
-    "sioba>=0.4",
+    "sioba>=0.6",
     "loguru>=0.7.2",
     "websockets>=15.0.1",
 ]
