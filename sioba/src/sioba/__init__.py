@@ -30,6 +30,9 @@ from .interface.socket import (
     SecureSocketInterface as SecureSocketInterface,
     UDPInterface as UDPInterface,
 )
+from .interface.io import (
+    IOInterface as IOInterface,
+)
 
 __all__: list[str] = [
     "Interface",
@@ -39,6 +42,7 @@ __all__: list[str] = [
     "SocketInterface",
     "SecureSocketInterface",
     "UDPInterface",
+    "IOInterface",
     "InterfaceState",
 
     "register_scheme",
