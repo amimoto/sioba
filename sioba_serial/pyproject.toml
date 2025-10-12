@@ -1,0 +1,48 @@
+[project]
+name = "sioba_serial"
+version = "0.1.20251002"
+description = "Sioba Websocket IO Interface layer"
+requires-python = ">=3.10"
+dependencies = [
+    "sioba>=0.6",
+    "loguru>=0.7.2",
+    "pyserial>=3.5",
+]
+license = { file = "LICENSE" }
+authors = [{ name = "Aki Mimoto", email = "aki@bako.ca" }]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+]
+readme = { file = "README.md", content-type = "text/markdown" }
+
+[build-system]
+requires = ["uv_build>=0.8.5,<1"]
+build-backend = "uv_build"
+
+[project.entry-points]
+"sioba.interface".serial = "sioba_serial.interface:SerialInterface"
+"sioba.interface"."serial+rfc2217" = "sioba_serial.interface:SerialInterface"
+"sioba.interface"."serial+socket" = "sioba_serial.interface:SerialInterface"
+"sioba.interface"."serial+loop" = "sioba_serial.interface:SerialInterface"
+"sioba.interface"."serial+hwgrep" = "sioba_serial.interface:SerialInterface"
+"sioba.interface"."serial+spy" = "sioba_serial.interface:SerialInterface"
+
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=0.25.3",
+    "pytest-cov>=6.2.1",
+]
+
+[tool.uv.sources]
+sioba = { workspace = true }
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
+
+
+
