@@ -131,7 +131,14 @@ class UDPServer(SingleRequestServer):
         self.state = ServerStatus.RUNNING
         try:
             while True:
-                buf, addr = serversocket.recvfrom(2048)
+                try:
+                    buf, addr = serversocket.recvfrom(2048)
+                except OSError as e:
+                    if getattr(e, "winerror", None) in (10038, 10022) or e.errno in (errno.EBADF,):
+                        # treat as normal shutdown
+                        return
+                    raise
+
                 if len(buf) <= 0:
                     continue
                 if isinstance(buf, bytes):
@@ -139,13 +146,12 @@ class UDPServer(SingleRequestServer):
                 # Check if server socket is still open
                 if serversocket.fileno() == -1:
                     break
-                serversocket.sendto(
-                    json.dumps({
+                response = json.dumps({
                         'status': 'ok',
                         'data': data
-                    }).encode('utf-8'),
-                    addr
-                )
+                    }).encode('utf-8')
+
+                res = serversocket.sendto(response, addr)
                 if buf.strip() == b'quit':
                     self.state = ServerStatus.STOPPED
                     break

@@ -138,6 +138,10 @@ class SecureSocketInterface(SocketInterface):
 class UDPInterface(IOInterface):
     def filehandle_create(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.connect((
+            self.context.host,
+            self.context.port
+        ))
         return sock
 
     def filehandle_read(self) -> bytes:
@@ -145,7 +149,15 @@ class UDPInterface(IOInterface):
         return resp
 
     def filehandle_write(self, data: bytes):
-        return self.handle.sendto(data, (
-            self.context.host,
-            self.context.port
-        ))
+        try:
+            self.handle.sendto(data, (
+                self.context.host,
+                self.context.port
+            ))
+
+        # Handle the windows:  OSError: [WinError 10038] An
+        # operation was attempted on something that is not a socket
+        except OSError as e:
+            if getattr(e, "winerror", None) in [10038]:
+                pass
+            raise e

@@ -104,7 +104,7 @@ class WindowsInterface(Interface):
         """Writes data to the shell."""
         if self.state != InterfaceState.STARTED:
             return
-        
+
         # since winpty expects str input, decode bytes to str
         data_decoded = data.decode()
 

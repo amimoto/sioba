@@ -43,7 +43,8 @@ class IOInterface(Interface):
                     logger.error("Reader is not initialized")
                     raise ConnectionError("Reader is not initialized")
 
-                if not ( data := self.filehandle_read() ):
+                data = self.filehandle_read()
+                if data is None:
                     break
 
                 if isinstance(data, str):
