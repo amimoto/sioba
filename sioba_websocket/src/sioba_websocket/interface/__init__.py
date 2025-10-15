@@ -4,7 +4,9 @@ from sioba import (
     InterfaceState,
     InterfaceContext,
     Unset,
+    UnsetFactory,
     UnsetOrNone,
+    DefaultValuesContext,
 )
 import websockets.sync.client
 import threading
@@ -22,12 +24,63 @@ class WebsocketContext(InterfaceContext):
     # test for an exact match or regular expressions compiled by
     # re.compile() to test against a pattern. Include None in the
     # list if the lack of an origin is acceptable
-    origin:str|UnsetOrNone = Unset
+    origin:str|UnsetOrNone = UnsetFactory()
 
     # List of supported extensions, in order in which they should be
     # negotiated and run.
-    extensions:Sequence[str]|UnsetOrNone = Unset
-    subprotocols:Sequence[str]|UnsetOrNone = Unset
+    extensions:Sequence[str]|UnsetOrNone = UnsetFactory()
+    subprotocols:Sequence[str]|UnsetOrNone = UnsetFactory()
+
+    # The “permessage-deflate” extension is enabled by default. Set
+    # compression to None to disable it.
+    compression:str|UnsetOrNone = UnsetFactory()
+
+    #additional_headers=UnsetOrNone
+
+    # Value of the Server response header. It defaults to
+    # "Python/x.y.z websockets/X.Y".
+    user_agent_header:str = UnsetFactory()
+
+    # Timeout for opening the connection in seconds.
+    open_timeout:int|UnsetOrNone = UnsetFactory()
+
+    # Timeout for closing the connection in seconds.
+    close_timeout:int|UnsetOrNone = UnsetFactory()
+
+    # Maximum size of incoming messages in bytes.
+    max_size:int|UnsetOrNone = UnsetFactory()
+
+    # High-water mark of the buffer where frames are received.
+    # It defaults to 16 frames. The low-water mark defaults to
+    # max_queue // 4. You may pass a (high, low) tuple to set the
+    # high-water and low-water marks. If you want to disable flow
+    # control entirely, you may set it to None, although that’s a
+    # bad idea.
+    max_queue:int|UnsetOrNone = UnsetFactory()
+
+"""
+ssl=None
+server_hostname=None
+origin=None
+extensions=None
+subprotocols=None
+compression='deflate'
+additional_headers=None
+user_agent_header='Python/3.10 websockets/15.0.1'
+proxy=True
+proxy_ssl=None
+proxy_server_hostname=None
+open_timeout=10
+close_timeout=10
+max_size=1048576
+max_queue=16
+logger=None
+create_connection=None
+"""
+
+
+@dataclass
+class WebsocketDefaultValuesContext(DefaultValuesContext):
 
     # The “permessage-deflate” extension is enabled by default. Set
     # compression to None to disable it.
@@ -56,29 +109,13 @@ class WebsocketContext(InterfaceContext):
     # bad idea.
     max_queue:int|UnsetOrNone = 16
 
-"""
-ssl=None
-server_hostname=None
-origin=None
-extensions=None
-subprotocols=None
-compression='deflate'
-additional_headers=None
-user_agent_header='Python/3.10 websockets/15.0.1'
-proxy=True
-proxy_ssl=None
-proxy_server_hostname=None
-open_timeout=10
-close_timeout=10
-max_size=1048576
-max_queue=16
-logger=None
-create_connection=None
-"""
+
 
 @register_scheme("ws", context_class=WebsocketContext)
 @register_scheme("wss")
 class WebsocketInterface(Interface):
+
+    default_context: InterfaceContext = WebsocketDefaultValuesContext()
 
     handle = None
 
