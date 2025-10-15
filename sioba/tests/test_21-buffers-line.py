@@ -1,5 +1,5 @@
 from unittest import IsolatedAsyncioTestCase
-from sioba import InterfaceContext, buffer_from_uri
+from sioba import InterfaceContext, buffer_from_uri, DefaultValuesContext
 
 class MockInterface:
     def __init__(self, context):
@@ -11,7 +11,7 @@ class TestBuffers(IsolatedAsyncioTestCase):
         """ Test the RawBuffer implementation. """
 
         buffer_uri = "line://"
-        context = InterfaceContext.with_defaults(
+        context = DefaultValuesContext.with_defaults(
             title="Test Interface",
             scrollback_buffer_uri=buffer_uri,
             scrollback_buffer_size=10,
@@ -24,10 +24,10 @@ class TestBuffers(IsolatedAsyncioTestCase):
             title_change_events.append(title)
 
         buffer = buffer_from_uri(
-                    buffer_uri,
-                    interface=MockInterface(context),
-                    on_set_terminal_title=on_set_terminal_title,
-                )
+                        buffer_uri,
+                        interface=MockInterface(context),
+                        on_set_terminal_title=on_set_terminal_title,
+                    )
 
         from sioba.buffer.line import LineBuffer
         self.assertIsInstance(buffer, LineBuffer)

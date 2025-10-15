@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from .context import (
     InterfaceContext as InterfaceContext,
+    Unset as Unset,
+    UnsetType as UnsetType,
+    UnsetFactory as UnsetFactory,
+    UnsetOrNone as UnsetOrNone,
+    DefaultValuesContext as DefaultValuesContext,
 )
 
 from .interface.base import (
@@ -23,8 +28,11 @@ from .interface.echo import EchoInterface as EchoInterface
 from .interface.socket import (
     SocketInterface as SocketInterface,
     SecureSocketInterface as SecureSocketInterface,
+    UDPInterface as UDPInterface,
 )
-
+from .interface.io import (
+    IOInterface as IOInterface,
+)
 
 __all__: list[str] = [
     "Interface",
@@ -33,6 +41,8 @@ __all__: list[str] = [
     "EchoInterface",
     "SocketInterface",
     "SecureSocketInterface",
+    "UDPInterface",
+    "IOInterface",
     "InterfaceState",
 
     "register_scheme",

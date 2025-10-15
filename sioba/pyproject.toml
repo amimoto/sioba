@@ -1,13 +1,12 @@
 [project]
 name = "sioba"
-version = "0.4.2050906.4"
+version = "0.6.20251011"
 description = "Sioba IO Abstraction Layer"
 requires-python = ">=3.10"
 dependencies = [
     "loguru>=0.7.2",
     "rich>=14.0.0",
     "pyte>=0.8.2",
-    "loguru>=0.7.2",
     "janus>=2.0.0",
 ]
 license = { file = "LICENSE" }
@@ -35,6 +34,7 @@ dev = [
 "sioba.interface".echo = "sioba.interface.echo:EchoInterface"
 "sioba.interface".tcp  = "sioba.interface.socket:SocketInterface"
 "sioba.interface".ssl = "sioba.interface.socket:SecureSocketInterface"
+"sioba.interface".udp = "sioba.interface.socket:UDPInterface"
 "sioba.interface".dummy = "sioba.interface.echo:EchoInterface"
 "sioba.buffer".none = "sioba.buffer.base:Buffer"
 "sioba.buffer".line = "sioba.buffer.line:LineBuffer"

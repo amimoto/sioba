@@ -30,9 +30,32 @@ uv pip install sioba_nicegui sioba sioba_subprocess
 
 ---
 
-## TL;DR (three ways)
+## Quick start
 
-### 1) Echo demo (no backend needed)
+### Basic Template
+
+This creates a basic xterm.js interface that echoes data typed into it back. This has a default buffer so that reloads will preserve some of the context
+
+```python
+from nicegui import ui
+from sioba_nicegui.xterm import XTermInterface
+
+URI = 'echo://'
+
+# To use a 
+# URI = 'tcp://towel.blinkenlights.nl:23'
+
+term = XTermInterface.from_uri(URI).classes('w-full h-[70vh]')
+
+ui.run()
+```
+
+
+
+
+## Using in 3 Ways
+
+### 1) Using a uri. Echo demo (no backend needed)
 
 ```python
 from nicegui import ui
@@ -43,7 +66,7 @@ term = XTermInterface.from_uri('echo://').classes('w-full h-[70vh]')
 ui.run(title='Echo', port=9000, host='0.0.0.0', show=True)
 ```
 
-### 2) Function interface (prompt/print/input/getpass)
+### 2) Creating a Function interface (prompt/print/input/getpass)
 
 ```python
 from nicegui import ui

@@ -2,7 +2,7 @@
 
 A small Python library that unifies interactive IO (functions, TCP/SSL sockets) behind a single async `Interface` API with pluggable scrollback buffers (terminal emulator or simple line buffer).
 
-<img src="sioba-image.png" width="300" />
+<img src="https://raw.githubusercontent.com/amimoto/sioba/refs/heads/main/sioba/sioba-image.png" width="300" />
 
 ---
 
@@ -18,8 +18,6 @@ A small Python library that unifies interactive IO (functions, TCP/SSL sockets) 
 ---
 
 ## Installation
-
-**From source (recommended until published):**
 
 ```bash
 pip install sioba
@@ -55,7 +53,7 @@ async def main():
         captured.append(data)
     echo.on_send_to_frontend(on_send_to_frontend)
 
-    # Manually injec tdata into the interface instance
+    # Manually inject data into the interface instance
     await echo.receive_from_frontend(b"Hello, World!")
 
     # We should have received the data in our callback
@@ -629,6 +627,7 @@ class DummyBuffer:
 * `sioba.EchoInterface` — `echo://` passthrough for testing.
 * `sioba.SocketInterface` — `tcp://host:port` using asyncio streams.
 * `sioba.SecureSocketInterface` — `ssl://host:port` with optional `create_ssl_context`.
+* `sioba.UDPInterface` — `udp://host:port` for UDP streams.
 * `sioba.buffer_from_uri(uri, **kw)` / `sioba.register_buffer(*names)` / `sioba.list_buffer_schemes()` — buffer plugins.
 * `sioba.errors` — `InterfaceNotStarted`, `InterfaceShutdown`, `TerminalClosedError`, etc.
 * `sioba.Interface.filehandle()` — TTY-like stream (used by `rich.Console(file=...)`).
@@ -643,7 +642,7 @@ class DummyBuffer:
 
 ## Security & Limits
 
-* `tcp://` and `ssl://` interfaces **open network connections**; user input is echoed locally and forwarded to the remote server.
+* `tcp://`, `udp://`, and `ssl://` interfaces **open network connections**; user input is echoed locally and forwarded to the remote server.
 * `SecureSocketInterface` accepts a custom SSL context; using an “unverified” context (as in tests) **disables certificate verification**—unsafe for production.
 * `FunctionInterface` runs your function in a **separate thread** and can execute arbitrary code; there is no sandboxing.
 

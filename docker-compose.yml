@@ -1,9 +1,4 @@
 services:
-  host:
-    build:
-      context: .
-      dockerfile: ./docker/nginx/Dockerfile
-
   src:
     build:
       context: .

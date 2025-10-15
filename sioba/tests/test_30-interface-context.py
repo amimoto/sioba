@@ -1,9 +1,48 @@
 from unittest import TestCase
 from dataclasses import dataclass
-from sioba import InterfaceContext
+from sioba import (
+    InterfaceContext,
+    DefaultValuesContext,
+    UnsetOrNone,
+    Unset,
+    UnsetFactory,
+)
 from utils.server import SingleRequestServer
 
 class TestingContext(TestCase):
+
+    def test_context_unset(self):
+        """ Do multiple tests with Unset singleton """
+        self.assertFalse(Unset)
+
+        context = InterfaceContext()
+        self.assertTrue(context.rows == Unset)
+        self.assertTrue(context.rows is Unset)
+        self.assertFalse(context.rows)
+
+        data = context.asdict()
+        self.assertTrue(data["rows"] == Unset)
+        self.assertTrue(data["rows"] is Unset)
+        self.assertFalse(data["rows"])
+
+    def test_context_with_defaults(self):
+        """ Test that with_defaults class method works correctly
+        """
+        context = InterfaceContext.with_defaults(
+            rows=30,
+            cols=120,
+        )
+        self.assertIsInstance(context, InterfaceContext)
+        self.assertEqual(context.rows, 30)
+        self.assertEqual(context.cols, 120)
+        self.assertIs(context.path, Unset)
+
+    def test_context_unset_and_uri(self):
+        """ Test that with_defaults class method works correctly """
+        context = InterfaceContext.from_uri(
+            uri="test://localhost:1234/?rows=52&cols=100",
+            rows=24,
+        )
 
     def test_context(self):
 
@@ -12,7 +51,7 @@ class TestingContext(TestCase):
         server.start()
 
         # Test if we can import InterfaceContext without errors
-        context = InterfaceContext.with_defaults(
+        context = DefaultValuesContext.with_defaults(
             uri=f"tcp://localhost1:{server.port}",
             encoding="utf-8",
             convertEol=True,
@@ -31,19 +70,19 @@ class TestingContext(TestCase):
         self.assertEqual(context.cols, 80)
 
         # Test the parse_uri function
-        parsed = InterfaceContext.from_uri(f"tcp://localhost2:{server.port}?rows=52&cols=100")
+        parsed = DefaultValuesContext.from_uri(f"tcp://localhost2:{server.port}?rows=52&cols=100")
         self.assertIsInstance(parsed, InterfaceContext)
         self.assertEqual(parsed.scheme, "tcp")
         self.assertEqual(parsed.netloc, f"localhost2:{server.port}")
         self.assertEqual(parsed.rows, 52)
         self.assertEqual(parsed.cols, 100)
-        self.assertEqual(parsed.query, {"rows": ["52"], "cols": ["100"]})
+        self.assertEqual(parsed.query, {"rows": "52", "cols": "100"})
         self.assertEqual(parsed.encoding, "utf-8")
         self.assertEqual(parsed.convertEol, True)
         self.assertEqual(parsed.auto_shutdown, True)
 
         # Override some parameters
-        parsed = InterfaceContext.from_uri(
+        parsed = DefaultValuesContext.from_uri(
             f"tcp://localhost3:{server.port}?rows=52&cols=100",
             encoding="ascii",
             auto_shutdown=False,
@@ -53,10 +92,10 @@ class TestingContext(TestCase):
         self.assertFalse(parsed.auto_shutdown)
         self.assertEqual(parsed.rows, 52)
         self.assertEqual(parsed.cols, 100)
-        self.assertEqual(parsed.query, {"rows": ["52"], "cols": ["100"]})
+        self.assertEqual(parsed.query, {"rows": "52", "cols": "100"})
 
         # Let's add some extra parameters
-        parsed = InterfaceContext.from_uri(
+        parsed = DefaultValuesContext.from_uri(
             f"tcp://localhost4:{server.port}?rows=52&cols=100",
             extra_params={
                 "custom_param": "custom_value",
@@ -66,7 +105,7 @@ class TestingContext(TestCase):
 
         # Create a new context
         @dataclass
-        class InheritedContext(InterfaceContext):
+        class InheritedContext(DefaultValuesContext):
             # This class inherits from InterfaceContext to test inheritance and additional functionality
             test: str = "default_value"
 
@@ -85,21 +124,22 @@ class TestingContext(TestCase):
                 'convertEol': True,
                 'encoding': 'utf-8',
                 'extra_params': {},
-                'host': None,
-                'netloc': None,
-                'params': None,
-                'password': None,
-                'path': None,
-                'port': None,
+                'host': Unset,
+                'local_echo': False,
+                'netloc': Unset,
+                'params': Unset,
+                'password': Unset,
+                'path': Unset,
+                'port': Unset,
                 'query': {},
                 'rows': 24,
-                'scheme': None,
+                'scheme': Unset,
                 'scrollback_buffer_size': 10000,
                 'scrollback_buffer_uri': "terminal://",
                 'test': 'default_value',
                 'title': 'Test Interface',
                 'uri': f'tcp://localhost5:{server.port}',
-                'username': None
+                'username': Unset
             }
         self.assertEqual( inherited_context.asdict(), VERIFY)
 
@@ -121,6 +161,35 @@ class TestingContext(TestCase):
         self.assertIsInstance(context, InterfaceContext)
 
         self.assertEqual(context.get("banana"), "yellow")
+
+    def test_context_conversion(self):
+        """ Check that we can convert types correctly """
+
+        @dataclass
+        class ExampleConversionContext(DefaultValuesContext):
+            integer: int|UnsetOrNone = UnsetFactory()
+            boolean: bool|UnsetOrNone = UnsetFactory()
+            string: str|UnsetOrNone = UnsetFactory()
+            floatnum: float|UnsetOrNone = UnsetFactory()
+
+            str_list: list[str]|UnsetOrNone = UnsetFactory()
+
+        # Create a context from URI
+        context = ExampleConversionContext.from_uri(
+            "test://localhost/?integer=42&boolean=1&string=hello&floatnum=3.14&str_list=item1&str_list=item2"
+        )
+
+        self.assertIsInstance(context, ExampleConversionContext)
+        self.assertEqual(context.integer, 42)
+        self.assertIsInstance(context.integer, int)
+        self.assertTrue(context.boolean)
+        self.assertIsInstance(context.boolean, bool)
+        self.assertEqual(context.string, "hello")
+        self.assertIsInstance(context.string, str)
+        self.assertIsInstance(context.floatnum, float)
+
+        self.assertIsInstance(context.str_list, list)
+        self.assertEqual(context.str_list, ["item1", "item2"])
 
 
 

@@ -1,12 +1,12 @@
 [project]
-name = "sioba_subprocess"
-version = "0.4.20250928"
-description = "Sioba Subprocess IO Interface layer"
+name = "sioba_websocket"
+version = "0.1.20250928"
+description = "Sioba Websocket IO Interface layer"
 requires-python = ">=3.10"
 dependencies = [
     "sioba>=0.6",
     "loguru>=0.7.2",
-    "pywinpty>=2.0.4; sys_platform == 'win32'",
+    "websockets>=15.0.1",
 ]
 license = { file = "LICENSE" }
 authors = [{ name = "Aki Mimoto", email = "aki@bako.ca" }]
@@ -20,7 +20,8 @@ requires = ["uv_build>=0.8.5,<1"]
 build-backend = "uv_build"
 
 [project.entry-points]
-"sioba.interface".exec = "sioba_subprocess.interface:ShellInterface"
+"sioba.interface".ws = "sioba_websocket.interface:WebsocketInterface"
+"sioba.interface".wss = "sioba_websocket.interface:WebsocketInterface"
 
 [dependency-groups]
 dev = [
@@ -37,3 +38,8 @@ name = "testpypi"
 url = "https://test.pypi.org/simple/"
 publish-url = "https://test.pypi.org/legacy/"
 explicit = true
+
+
+
+
+

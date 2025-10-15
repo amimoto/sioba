@@ -11,7 +11,7 @@ import errno
 
 from typing import Callable, Optional
 
-from sioba import Interface, InterfaceState
+from sioba import Interface, InterfaceState, InterfaceContext
 from sioba_subprocess.utils import default_shell
 
 from loguru import logger
@@ -28,6 +28,10 @@ class PosixInterface(Interface):
       - Waiter thread waits for process exit and triggers shutdown.
       - Public methods remain async for compatibility with the Interface base.
     """
+
+    default_context: InterfaceContext = InterfaceContext(
+        convertEol=False,
+    )
 
     def __init__(
         self,
@@ -165,14 +169,12 @@ class PosixInterface(Interface):
                 # Event loop may already be closed; nothing we can do.
                 pass
 
-    @logger.catch
-    async def receive_from_frontend(self, data: bytes):
+    async def receive_from_frontend_handle(self, data: bytes):
         """Write bytes to the PTY master; keep async signature for Interface."""
         if self.state != InterfaceState.STARTED:
             return
         with self._write_lock:
             os.write(self.primary_fd, data)
-        await super().receive_from_frontend(data)
 
     @logger.catch
     def set_terminal_size(self, rows, cols, xpix=0, ypix=0):

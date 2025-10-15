@@ -174,7 +174,6 @@ class EventsStream(pyte.Stream):
 
         :param str data: a blob of data to feed from.
         """
-        print(f"RECEIVED: {repr(data)}")
         super().feed(data)
 
 def strip_terminal_escapes(data: bytes, cols: int=80, rows: int=24) -> str:
